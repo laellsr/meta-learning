@@ -1,0 +1,27 @@
+\begin{thebibliography}{}
+
+\bibitem[Alcoba\c{c}a et~al. 2020]{pymfe2020}
+Alcoba\c{c}a, E., Siqueira, F., Rivolli, A., Garcia, L. P.~F., Oliva, J.~T.,
+  and de~Carvalho, A. C. P. L.~F. (2020).
+\newblock {MFE}: Towards reproducible meta-feature extraction.
+\newblock {\em Journal of Machine Learning Research}, 21(111):1--5.
+
+\bibitem[Amorim et~al. 2022]{amorim2022choice}
+Amorim, G., Santos, M., de~Oliveira, B., et~al. (2022).
+\newblock The choice of scaling technique matters for classification
+  performance.
+\newblock {\em Applied Soft Computing}, 119:108643.
+
+\bibitem[Vanschoren 2019]{vanschoren2018meta}
+Vanschoren, J. (2019).
+\newblock Meta-learning: A survey.
+\newblock In Hutter, F., Kotthoff, L., and Vanschoren, J., editors, {\em
+  Automated Machine Learning: Methods, Systems, Challenges}, pages 35--61.
+  Springer.
+
+\bibitem[Vanschoren et~al. 2014]{vanschoren2014openml}
+Vanschoren, J., van Rijn, J.~N., Bischl, B., and Torgo, L. (2014).
+\newblock {OpenML}: Networked science in machine learning.
+\newblock {\em ACM SIGKDD Explorations Newsletter}, 15(2):49--60.
+
+\end{thebibliography}

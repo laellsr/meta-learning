@@ -1,0 +1,57 @@
+\relax 
+\providecommand \babel@aux [2]{\global \let \babel@toc \@gobbletwo }
+\@nameuse{bbl@beforestart}
+\catcode `"\active 
+\citation{vanschoren2018meta}
+\citation{amorim2022choice}
+\babel@aux{brazilian}{}
+\@writefile{toc}{\contentsline {section}{\numberline {1}Introdução}{1}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {2}Proposta}{2}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Formulação do Problema}{2}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}Pipeline de Meta-Aprendizagem com Escalonamento do Alvo}{2}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.3}Técnicas de Escalonamento Avaliadas}{2}{}\protected@file@percent }
+\citation{vanschoren2014openml}
+\citation{pymfe2020}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Pipeline de meta-aprendizagem com escalonamento do meta-alvo. O escalonador $S$ é ajustado exclusivamente nos dados de treino, evitando \textit  {data leakage}. A inversão $S^{-1}$ garante que as métricas finais sejam avaliadas na escala original do F1-score.}}{3}{}\protected@file@percent }
+\providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
+\newlabel{fig:pipeline}{{1}{3}{Pipeline de Meta-Aprendizagem com Escalonamento do Alvo}{figure.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.4}Métricas de Avaliação}{3}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {3}Metodologia Experimental}{3}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Conjuntos de Dados}{3}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Meta-features Extraídas}{3}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Perfil das meta-features dos Experimentos 3 e 4 (200 datasets reais do OpenML).}}{4}{}\protected@file@percent }
+\newlabel{tab:metadataset_profile}{{1}{4}{Conjuntos de Dados}{table.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}Algoritmos Base e Meta-alvo}{4}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}Meta-modelos}{4}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.5}Protocolo de Validação}{4}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.6}Testes Estatísticos}{5}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4}Resultados e Discussão}{5}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Distribuição do Meta-Alvo}{5}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Distribuição do F1-macro (meta-alvo) para os 5 algoritmos base nos 200 datasets reais.}}{5}{}\protected@file@percent }
+\newlabel{tab:base_perf}{{2}{5}{Distribuição do Meta-Alvo}{table.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Resultados por Experimento}{5}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Resumo dos resultados do Experimento 4 (PyMFE, 200 datasets). Comparativo entre Baseline e escalonadores recomendados.}}{6}{}\protected@file@percent }
+\newlabel{tab:results_exp4_summary}{{3}{6}{Resultados por Experimento}{table.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Testes de Hipóteses}{6}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Resultados do teste de Friedman por meta-modelo nos Experimentos~2, 3 e 4.}}{7}{}\protected@file@percent }
+\newlabel{tab:friedman_all}{{4}{7}{Testes de Hipóteses}{table.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4}Análise por Meta-Modelo}{7}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.4.1}Ridge Regression: Invariância a Transformações Lineares}{7}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.4.2}SVR: O Escalonamento Ajuda Mais na Recomendação do que na Redução do Erro}{7}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.4.3}Random Forest: Robustez ao Escalonamento}{8}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {4.4.4}MLP: Colapso sem Escalonamento Centralizado}{8}{}\protected@file@percent }
+\newlabel{subsec:analise_mlp}{{4.4.4}{8}{MLP: Colapso sem Escalonamento Centralizado}{subsubsection.4.4.4}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces Comportamento do MLP nos quatro experimentos: Baseline versus melhor scaler.}}{8}{}\protected@file@percent }
+\newlabel{tab:mlp_comparison}{{5}{8}{MLP: Colapso sem Escalonamento Centralizado}{table.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.5}O Paradoxo do QuantileTransformer}{9}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.6}Consistência entre os Experimentos}{9}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {6}{\ignorespaces Consistência dos achados ao longo dos quatro experimentos.}}{9}{}\protected@file@percent }
+\newlabel{tab:consistency}{{6}{9}{Consistência entre os Experimentos}{table.6}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5}Conclusão}{9}{}\protected@file@percent }
+\bibstyle{sbc}
+\bibdata{relatorio-sbc}
+\bibcite{pymfe2020}{Alcoba\c {c}a et~al. 2020}
+\bibcite{amorim2022choice}{Amorim et~al. 2022}
+\bibcite{vanschoren2018meta}{Vanschoren 2019}
+\bibcite{vanschoren2014openml}{Vanschoren et~al. 2014}
+\gdef \@abspage@last{10}

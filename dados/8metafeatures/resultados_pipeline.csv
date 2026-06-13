@@ -1,0 +1,21 @@
+Meta-Modelo,Scaler,MAE (μ),RMSE (μ),Spearman (μ),Acc@1 (μ)
+Ridge,Baseline,0.1469,0.1617,0.4625,0.4242
+Ridge,StandardScaler,0.1469,0.1617,0.4625,0.4242
+Ridge,MinMaxScaler,0.1469,0.1617,0.4625,0.4242
+Ridge,RobustScaler,0.1469,0.1617,0.4625,0.4242
+Ridge,QuantileTransformer,0.1451,0.1618,0.4362,0.3889
+SVR,Baseline,0.1276,0.1431,0.488,0.4293
+SVR,StandardScaler,0.1234,0.1391,0.5003,0.4293
+SVR,MinMaxScaler,0.1267,0.1421,0.4855,0.4293
+SVR,RobustScaler,0.1238,0.1395,0.5238,0.4697
+SVR,QuantileTransformer,0.1245,0.1407,0.5027,0.4394
+RandomForest,Baseline,0.1148,0.1295,0.5472,0.5101
+RandomForest,StandardScaler,0.1146,0.1294,0.5475,0.5101
+RandomForest,MinMaxScaler,0.1143,0.1291,0.5543,0.5152
+RandomForest,RobustScaler,0.1144,0.1291,0.5444,0.5253
+RandomForest,QuantileTransformer,0.1193,0.1367,0.5219,0.4495
+MLP,Baseline,0.174,0.1999,0.1674,0.2071
+MLP,StandardScaler,0.1306,0.1464,0.4308,0.3737
+MLP,MinMaxScaler,0.1703,0.1941,0.2109,0.202
+MLP,RobustScaler,0.135,0.1509,0.4132,0.399
+MLP,QuantileTransformer,0.1463,0.1651,0.3835,0.3535
