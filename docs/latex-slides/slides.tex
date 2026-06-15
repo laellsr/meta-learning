@@ -79,12 +79,31 @@
     \begin{column}{0.4\textwidth}
       \begin{figure}
         \centering
-        \begin{tikzpicture}[scale=0.85, every node/.style={transform shape}]
-          \draw[draw=primary, fill=primary!10, rounded corners, thick] (0,0) rectangle (4,3.2);
-          \node[primary, font=\bfseries] at (2,2.8) {Nível Meta};
-          \node[font=\scriptsize\itshape, align=center] at (2,2.0) {Meta-Features ($X$)\\ \textcolor{secondary}{\bfseries [Pré-processado]}};
-          \node[font=\scriptsize] at (2,1.3) {$\Downarrow$ Regressão Meta};
-          \node[font=\scriptsize\itshape, align=center] at (2,0.6) {Meta-Alvo ($Y$)\\ \textcolor{accent}{\bfseries [Geralmente Bruto]}};
+        \begin{tikzpicture}[scale=0.8, every node/.style={transform shape},
+          box/.style={draw=primary, fill=primary!5, rounded corners, thick, align=center, font=\scriptsize, minimum width=3.8cm, minimum height=0.6cm},
+          alertbox/.style={draw=accent, fill=accent!10, rounded corners, thick, align=center, font=\scriptsize, minimum width=3.8cm, minimum height=0.6cm},
+          title/.style={font=\small\bfseries, primary},
+          arrow/.style={-{Stealth[scale=0.8]}, thick, darkgray}
+        ]
+          % --- NÍVEL BASE ---
+          \node[title] (lblbase) at (2, 4.3) {Nível Base (Amorim et al., 2022)};
+          \draw[dashed, draw=gray!40] (-0.3, 1.9) rectangle (4.3, 4.6);
+          
+          \node[alertbox] (xbase) at (2, 3.7) {Atributos ($X_{base}$)\\ \textcolor{accent}{\bfseries [Escalonamento Estudado]}};
+          \node[box] (ybase) at (2, 2.4) {Performance ($Y_{base}$)\\ \textcolor{darkgray}{[Bruto / Não alterado]}};
+          \draw[arrow] (xbase) -- (ybase);
+
+          % --- SETA DE TRANSIÇÃO (Entradas para o Meta) ---
+          \draw[arrow, dashed, secondary, line width=1pt] (2, 1.9) -- (2, 1.1) 
+            node[midway, right, font=\tiny\itshape, text=secondary] {Mapeamento};
+
+          % --- NÍVEL META ---
+          \draw[dashed, draw=gray!40] (-0.3, -1.5) rectangle (4.3, 1.1);
+          \node[title] (lblmeta) at (2, 0.8) {Nível Meta (Este Trabalho)};
+          
+          \node[box] (xmeta) at (2, 0.2) {Meta-Features ($X_{meta}$)\\ \textcolor{darkgray}{[Pré-processado padrão]}};
+          \node[alertbox] (ymeta) at (2, -1.1) {Meta-Alvo ($Y_{meta}$)\\ \textcolor{accent}{\bfseries [Escalonamento Estudado (Lacuna)]}};
+          \draw[arrow] (xmeta) -- (ymeta);
         \end{tikzpicture}
         \caption{Foco no meta-alvo.}
       \end{figure}
@@ -286,40 +305,49 @@
   \end{columns}
 \end{frame}
 
-% Slide 8: Comparativo - Meta-features Manuais (Exp. 3) vs. PyMFE (Exp. 4)
-\begin{frame}{Comparativo: Meta-features Manuais (Exp. 3) vs. PyMFE (Exp. 4)}
-  \small
-  Comparativo direto entre as melhores configurações obtidas com 8 features manuais e 78 features do PyMFE.
-  
+% Slide 8: Performance Geral e Melhores Configurações por Experimento
+\begin{frame}{Performance Geral e Melhores Configurações por Experimento}
   \begin{table}
     \centering
-    \caption{Impacto da Riqueza de Meta-features (200 datasets)}
-    \footnotesize
-    \begin{tabular}{llccc}
+    \caption{Melhores configurações de escalonamento e performance do meta-modelo por experimento}
+    \tiny
+    \resizebox{\textwidth}{!}{%
+    \begin{tabular}{llcccccccc}
       \toprule
-      \textbf{Meta-Modelo} & \textbf{Cenário} & \textbf{Scaler Recomendado} & \textbf{MAE} & \textbf{Spearman} \\
+      \multirow{2}{*}{\textbf{Meta-Modelo}} & \multirow{2}{*}{\textbf{Cenário}} & \multicolumn{4}{c}{\textbf{Scaler Recomendado}} & \multicolumn{4}{c}{\textbf{Scaler Comparativo (QuantileTransformer)}} \\
+      \cmidrule(lr){3-6} \cmidrule(lr){7-10}
+      & & \textbf{Scaler} & \textbf{MAE} & \textbf{Spearman} & \textbf{Acc@1} & \textbf{Scaler} & \textbf{MAE} & \textbf{Spearman} & \textbf{Acc@1} \\
       \midrule
-      \multirow{2}{*}{\textbf{Ridge}}
-        & Exp. 3 (8 Features) & Baseline / Lineares & 0,1469 & 0,4625 \\
-        & \cellcolor{secondary!10}Exp. 4 (78 PyMFE) & \cellcolor{secondary!10}Baseline / Lineares & \cellcolor{secondary!10}\textbf{0,1007 (-31\%)} & \cellcolor{secondary!10}\textbf{0,4966} \\
+      \multirow{4}{*}{\textbf{Ridge}}
+        & Exp. 1 (50 ds, sintético) & Baseline / Lineares & 0,0832 & 0,6433 & 0,5000 & QuantileTransformer & \textbf{0,0667} & 0,6040 & 0,3400 \\
+        & Exp. 2 (144 ds, real) & Baseline / Lineares & 0,1371 & 0,5148 & 0,5069 & QuantileTransformer & 0,1378 & \textbf{0,5174} & 0,4792 \\
+        & Exp. 3 (200 ds, real) & Baseline / Lineares & 0,1469 & 0,4625 & 0,4242 & QuantileTransformer & \textbf{0,1451} & 0,4362 & 0,3889 \\
+        & \cellcolor{secondary!10}Exp. 4 (200 ds, PyMFE) & \cellcolor{secondary!10}Baseline / Lineares & \cellcolor{secondary!10}\textbf{0,1007} & \cellcolor{secondary!10}\textbf{0,4966} & \cellcolor{secondary!10}\textbf{0,3788} & QuantileTransformer & 0,1152 & 0,4483 & 0,3586 \\
       \midrule
-      \multirow{2}{*}{\textbf{SVR}}
-        & Exp. 3 (8 Features) & RobustScaler & 0,1238 & 0,5238 \\
-        & \cellcolor{secondary!10}Exp. 4 (78 PyMFE) & \cellcolor{secondary!10}Robust / Standard & \cellcolor{secondary!10}\textbf{0,0884 (-28\%)} & \cellcolor{secondary!10}\textbf{0,5982} \\
+      \multirow{4}{*}{\textbf{SVR}}
+        & Exp. 1 (50 ds, sintético) & RobustScaler & 0,0640 & 0,6540 & 0,4800 & QuantileTransformer & 0,0658 & 0,6320 & 0,4600 \\
+        & Exp. 2 (144 ds, real) & RobustScaler & 0,1298 & 0,5267 & 0,5625 & QuantileTransformer & \textbf{0,1287} & \textbf{0,5304} & 0,4931 \\
+        & Exp. 3 (200 ds, real) & RobustScaler & 0,1238 & 0,5238 & 0,4697 & QuantileTransformer & 0,1245 & 0,5027 & 0,4394 \\
+        & \cellcolor{secondary!10}Exp. 4 (200 ds, PyMFE) & \cellcolor{secondary!10}Robust / Standard & \cellcolor{secondary!10}\textbf{0,0884} & \cellcolor{secondary!10}\textbf{0,5982} & \cellcolor{secondary!10}\textbf{0,4949} & QuantileTransformer & 0,0896 & 0,5847 & 0,4293 \\
       \midrule
-      \multirow{2}{*}{\textbf{Random Forest}}
-        & Exp. 3 (8 Features) & MinMaxScaler & 0,1143 & 0,5543 \\
-        & \cellcolor{secondary!10}Exp. 4 (78 PyMFE) & \cellcolor{secondary!10}MinMaxScaler & \cellcolor{secondary!10}\textbf{0,0845 (-26\%)} & \cellcolor{secondary!10}\textbf{0,6157} \\
+      \multirow{4}{*}{\textbf{Random Forest}}
+        & Exp. 1 (50 ds, sintético) & Baseline / MinMax & 0,0623 & 0,6460 & 0,4600 & QuantileTransformer & 0,0630 & \textbf{0,6600} & 0,4600 \\
+        & Exp. 2 (144 ds, real) & StandardScaler & 0,1043 & 0,5808 & 0,5903 & QuantileTransformer & 0,1119 & 0,5487 & 0,5139 \\
+        & Exp. 3 (200 ds, real) & MinMax / Robust & 0,1143 & 0,5543 & 0,5253 & QuantileTransformer & 0,1193 & 0,5219 & 0,4495 \\
+        & \cellcolor{secondary!10}Exp. 4 (200 ds, PyMFE) & \cellcolor{secondary!10}MinMaxScaler & \cellcolor{secondary!10}\textbf{0,0845} & \cellcolor{secondary!10}\textbf{0,6157} & \cellcolor{secondary!10}\textbf{0,5152} & QuantileTransformer & 0,0873 & 0,5934 & 0,4697 \\
       \midrule
-      \multirow{2}{*}{\textbf{MLP}}
-        & Exp. 3 (8 Features) & StandardScaler & 0,1306 & 0,4308 \\
-        & \cellcolor{secondary!10}Exp. 4 (78 PyMFE) & \cellcolor{secondary!10}StandardScaler & \cellcolor{secondary!10}\textbf{0,1165 (-11\%)} & \cellcolor{secondary!10}\textbf{0,3875} \\
+      \multirow{4}{*}{\textbf{MLP}}
+        & Exp. 1 (50 ds, sintético) & RobustScaler & 0,0710 & 0,5881 & 0,4400 & QuantileTransformer & 0,0756 & 0,4640 & 0,2600 \\
+        & Exp. 2 (144 ds, real) & RobustScaler & 0,1183 & 0,4527 & 0,4375 & QuantileTransformer & 0,1262 & \textbf{0,4688} & 0,3889 \\
+        & Exp. 3 (200 ds, real) & Standard / Robust & 0,1306 & 0,4308 & 0,3990 & QuantileTransformer & 0,1463 & 0,3835 & 0,3535 \\
+        & \cellcolor{secondary!10}Exp. 4 (200 ds, PyMFE) & \cellcolor{secondary!10}Standard / Robust & \cellcolor{secondary!10}\textbf{0,1165} & \cellcolor{secondary!10}\textbf{0,3875} & \cellcolor{secondary!10}\textbf{0,3586} & QuantileTransformer & 0,1294 & \textbf{0,4355} & 0,2980 \\
       \bottomrule
-    \end{tabular}
+    \end{tabular}%
+    }
   \end{table}
   \vspace{-0.1cm}
   \footnotesize
-  \textit{Obs: A redução no erro absoluto (MAE) varia de 11\% a 31\% com a inclusão de meta-features ricas (PyMFE).}
+  \textit{Obs: A inclusão das 78 meta-features do PyMFE (Exp. 4) reduziu significativamente o MAE em todos os meta-modelos se comparado ao Exp. 3.}
 \end{frame}
 
 % Slide 9: Resultados - Impacto Geral e Comparativo
@@ -340,7 +368,7 @@
         \small
         \begin{itemize}
           \item Sem centralização de escala, o MLP \textbf{colapsa} em dados reais.
-          \item A Spearman cai a \textbf{0.080} e Acc@1 fica em \textbf{21.2\%} (pior que o acaso).
+          \item A Spearman cai a \textbf{0.080} e Acc@1 fica em \textbf{21.2\%} (equivalente ao acaso de 20\%).
           \item Causa: Gradientes instáveis e saturação das ativações devido à alta dispersão.
         \end{itemize}
       \end{block}

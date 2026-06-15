@@ -369,7 +369,7 @@ O MinMaxScaler não ajuda o MLP porque ele apenas mapeia os dados para o interva
 
 Embora o QuantileTransformer possa ajudar a reduzir o erro absoluto (MAE) ao transformar os dados em uma distribuição normal, ele costuma piorar a capacidade de recomendação (Acc@1) dos modelos. Isso acontece porque a sua transformação não-linear muda as distâncias relativas entre os scores de F1 dos algoritmos. Por exemplo, se dois algoritmos têm desempenhos muito parecidos (como 0,70 e 0,71), o QuantileTransformer pode afastar bastante os seus valores transformados, enquanto dois desempenhos distantes (como 0,50 e 0,70) podem ficar mais próximos. Essa distorção dificulta que a inversão do escalonamento recupere a ordem exata das previsões.
 
-A lição prática é: se a intenção do sistema é de fato \textbf{recomendar o melhor algoritmo}, o QuantileTransformer deve ser evitado para a maioria dos modelos. A única exceção notável foi o MLP no Experimento 4 (com PyMFE), no qual o uso de características mais ricas na entrada parece ter ajudado a contornar esse problema.
+Se a intenção for de fato \textbf{recomendar o melhor algoritmo}, o QuantileTransformer deve ser evitado na maioria dos modelos devido à sua tendência de degradar o ranqueamento. Por outro lado, essa técnica destaca-se como a mais eficaz para lidar com dados desbalanceados, uma vez que sua capacidade de mapear comportamentos não lineares suaviza o impacto de distribuições muito assimétricas. A única exceção a essa perda generalizada de ordenação ocorreu com o MLP no Experimento 4 (com PyMFE), no qual a maior riqueza das meta-features parece ter ajudado a compensar as distorções introduzidas pelo escalonador.
 
 \subsection{Consistência entre os Experimentos}
 
@@ -411,7 +411,7 @@ Os resultados deixam claro que \textbf{a sensibilidade ao escalonamento do meta-
   \item \textbf{MLP}: o escalonamento centralizado (usando StandardScaler ou RobustScaler) é obrigatório. Sem esse ajuste, a rede neural falha nos cenários reais, dando palpites equivalentes a um sorteio aleatório (a correlação de Spearman fica abaixo de 0,09 no Experimento 4).
 \end{itemize}
 
-A principal recomendação geral é que o \textbf{QuantileTransformer costuma prejudicar a qualidade das recomendações} (Acc@1) na maioria dos meta-modelos, sendo a única técnica não recomendada para seleção de algoritmos — embora ele tenha melhorado a Spearman do MLP no Experimento 4 com PyMFE.
+O \textbf{QuantileTransformer deve ser evitado se o objetivo principal for otimizar a qualidade das recomendações} (Acc@1), uma vez que tende a degradar a ordenação. No entanto, ele se destaca como a escolha mais eficaz na presença de dados altamente desbalanceados, além de ter melhorado a correlação de Spearman do MLP no Experimento 4 com PyMFE.
 
 A adoção de meta-features mais completas (PyMFE) reduziu drasticamente o erro de previsão em todos os modelos.
 

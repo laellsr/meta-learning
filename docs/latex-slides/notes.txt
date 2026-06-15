@@ -92,27 +92,35 @@ algoritmo de forma justa."
   Fase de Teste embaixo).
 - Explique claramente que a transformação inversa é vital para não distorcer 
   as métricas de validação.
+- Em caso de questionamento da banca sobre "Vazamento de Dados (Data Leakage)":
+  Esclareça que calcular os parâmetros do escalonador (como a média/desvio do StandardScaler 
+  ou o mínimo/máximo do MinMaxScaler) usando os dados do conjunto de teste faria o meta-modelo 
+  "aprender" antecipadamente estatísticas que ele não deveria conhecer, inflando artificialmente 
+  os resultados. Por isso, o "fit" é feito exclusivamente no Y de treino.
 
 ------------------------------------------------------------------------
 SLIDE 5: Metodologia - Escalonadores e Métricas
 Tempo Estimado: 03:45 - 04:45 (1 minuto)
 ------------------------------------------------------------------------
 * Fala do Apresentador:
-"Avaliamos cinco abordagens aplicadas ao alvo: o Baseline (bruto), o 
-StandardScaler (padronização Z-score), o MinMaxScaler (para o intervalo 0-1), 
-o RobustScaler (baseado em mediana e IQR, ideal contra outliers) e o 
-QuantileTransformer (não-linear, mapeando os dados para uma distribuição normal).
-É importante notar que as técnicas de 1 a 4 são lineares e monotônicas, ou seja, 
-preservam perfeitamente a ordem relativa das performances. O QuantileTransformer 
-é não-linear e pode alterar a hierarquia de ranks.
-Para medir a qualidade, avaliamos três dimensões: o MAE (erro numérico absoluto), 
-a correlação de Spearman (que mede a capacidade de ordenar os algoritmos do 
-melhor para o pior) e a Acc@1 (a acurácia de recomendar o algoritmo que 
-realmente é o melhor no dataset)."
+"Avaliamos cinco estratégias para tratar a escala do nosso meta-alvo:
+O Baseline mantém os dados brutos de desempenho.
+O StandardScaler centraliza os dados na média e os ajusta pelo desvio padrão, gerando média zero e variância unitária, o que é ideal para otimizadores numéricos.
+O MinMaxScaler comprime linearmente os dados para o intervalo de zero a um, com base nos valores máximo e mínimo.
+O RobustScaler realiza a centralização pela mediana e divide pelo intervalo interquartil (IQR), impedindo que outliers de performance distorçam a escala.
+E o QuantileTransformer realiza uma transformação não-linear por quantis para forçar os dados a seguirem uma distribuição normal.
+As técnicas lineares de 1 a 4 preservam perfeitamente a ordenação dos dados, enquanto o QuantileTransformer, por ser não-linear, pode alterar a hierarquia relativa de ranks.
+Para medir a qualidade, usamos o MAE para erro absoluto na escala original, a correlação de Spearman para medir a capacidade de ordenação dos algoritmos, e a Acc@1 para medir a acurácia de recomendar o melhor algoritmo."
 
 * Notas do Apresentador:
-- Diferencie brevemente técnicas monotônicas de não-monotônicas. Essa distinção 
-  será chave ao explicar o "paradoxo" do QuantileTransformer mais à frente.
+- Explique brevemente o funcionamento matemático rápido de cada escalonador:
+  * Baseline: F1 bruto.
+  * Standard: (x - média) / desvio padrão.
+  * MinMax: (x - min) / (max - min).
+  * Robust: (x - mediana) / (Q3 - Q1), sendo imune a outliers.
+  * Quantile: mapeamento não-linear para a curva gaussiana.
+- Destaque a diferença entre transformações lineares e monotônicas (Standard, MinMax, Robust), que mantêm a ordem original, e a não-linear (Quantile), que pode distorcer a diferença relativa e prejudicar a métrica de recomendação Acc@1.
+- Essa distinção será chave ao explicar o "paradoxo" do QuantileTransformer mais à frente.
 
 ------------------------------------------------------------------------
 SLIDE 6: Metodologia - Configuração Experimental
@@ -154,26 +162,22 @@ estudar técnicas de escalonamento nesse contexto."
 * Notas do Apresentador:
 - Use a tabela para mostrar que alguns algoritmos, como o SVM, têm média menor 
   (0.589) mas desvio padrão maior (0.239), mostrando que o alvo oscila muito.
+- Desvio Padrão alto indica que a base de dados meta é extremamente heterogênea: contém tarefas de classificação muito simples (onde todos os classificadores beiram 1.0) e tarefas muito complexas ou com classes raras (onde o desempenho cai drasticamente perto de 0.0).
 
 ------------------------------------------------------------------------
-SLIDE 8: Comparativo - Meta-features Manuais (Exp. 3) vs. PyMFE (Exp. 4)
+SLIDE 8: Performance Geral e Melhores Configurações por Experimento
 Tempo Estimado: 06:45 - 07:45 (1 minuto)
 ------------------------------------------------------------------------
 * Fala do Apresentador:
-"Para demonstrar o impacto do enriquecimento das características de entrada, 
-apresentamos este comparativo direto entre o Experimento 3 (com 8 features manuais) 
-e o Experimento 4 (com as 78 features estruturadas do PyMFE).
-O resultado é muito claro: a adoção de características mais ricas reduziu drasticamente 
-o erro absoluto (MAE) de TODOS os meta-modelos em suas melhores configurações. 
-A queda no erro absoluto varia de 11% (no MLP) até expressivos 31% (no Ridge).
-Além disso, a correlação de Spearman também subiu sensivelmente, com destaque para 
-o Random Forest que subiu de 0,554 para 0,615 e o SVR de 0,523 para 0,598. Isso 
-prova que a riqueza de descrição dos datasets através do PyMFE é um fator de 
-primeira ordem para a precisão do meta-modelo."
+"Apresentamos agora a performance geral e as melhores configurações encontradas ao longo de todos os quatro experimentos do nosso estudo.
+Esta tabela sintetiza a evolução dos meta-modelos, mostrando o MAE, a correlação de Spearman e a Acc@1 para as melhores técnicas recomendadas lado a lado com o QuantileTransformer como scaler comparativo.
+Vemos de forma clara que, para o Ridge, SVR e Random Forest, os erros absolutos tendem a ser menores nos cenários sintéticos controlados (Experimento 1). Ao migrar para dados reais (Experimentos 2 e 3), o erro aumenta devido ao ruído dos dados reais, mas a adoção das 78 meta-features do PyMFE no Experimento 4 reduz drasticamente esse erro de forma consistente para todos os modelos.
+Além disso, comparando com a coluna 'Scaler Comparativo', notamos que o QuantileTransformer geralmente prejudica a acurácia de recomendação Acc@1 de quase todos os modelos. Porém, o MLP no Experimento 4 foi uma exceção notável onde o QuantileTransformer obteve a maior correlação de Spearman, chegando a 0,4355."
 
 * Notas do Apresentador:
-- Chame a atenção para as linhas destacadas em verde-teal claro, que representam 
-  o cenário do PyMFE, mostrando os ganhos de porcentagem de erro (MAE).
+- Explique o panorama dos 4 experimentos, mostrando como o erro (MAE) sobe ao migrar de sintético (Exp 1) para dados reais (Exp 2 e 3), mas é reduzido drasticamente no Exp 4 graças à riqueza de meta-features do PyMFE.
+- Chame a atenção para as linhas destacadas em verde-teal claro, que representam o cenário do PyMFE (Exp. 4).
+- Destaque a comparação com a coluna 'Scaler Comparativo' que apresenta o QuantileTransformer para todos os experimentos. Mostre que o QT geralmente degrada o desempenho (especialmente Acc@1), mas foi a melhor técnica de ranqueamento (Spearman = 0,4355) para o MLP no Exp 4.
 
 ------------------------------------------------------------------------
 SLIDE 9: Resultados - Impacto Geral e Comparativo (Manuais vs. PyMFE)
