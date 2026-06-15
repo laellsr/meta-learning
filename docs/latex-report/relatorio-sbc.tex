@@ -126,11 +126,11 @@ A proposta central é estudar o efeito de uma transformação $S: \mathbb{R}^{N 
 
 As cinco técnicas, aplicadas coluna a coluna sobre $Y$, são:
 \begin{enumerate}
-  \item \textbf{Baseline} (sem escalonamento): $\tilde{y} = y$;
-  \item \textbf{StandardScaler} (Z-score): $\tilde{y} = (y - \mu) / \sigma$;
-  \item \textbf{MinMaxScaler}: $\tilde{y} = (y - y_{\min}) / (y_{\max} - y_{\min})$;
-  \item \textbf{RobustScaler}: $\tilde{y} = (y - \text{mediana}) / \text{IQR}$, resistente a outliers;
-  \item \textbf{QuantileTransformer}: $\tilde{y} = \Phi^{-1}\!\left( \frac{rank(y)}{n+1} \right)$, transformação não-linear que força distribuição normal.
+  \item \textbf{Baseline} (sem escalonamento): $\tilde{y} = y$. Serve como grupo de controle, mantendo os valores de desempenho originais (F1-macro) sem qualquer modificação;
+  \item \textbf{StandardScaler} (Z-score): $\tilde{y} = (y - \mu) / \sigma$. Onde $\mu$ é a média e $\sigma$ o desvio padrão. Centraliza os dados em torno de zero com variância unitária, auxiliando na convergência de métodos baseados em gradiente;
+  \item \textbf{MinMaxScaler}: $\tilde{y} = (y - y_{\min}) / (y_{\max} - y_{\min})$. Mapeia linearmente os valores para o intervalo $[0, 1]$, preservando a forma da distribuição original e a proporção das distâncias entre os pontos;
+  \item \textbf{RobustScaler}: $\tilde{y} = (y - \text{mediana}) / \text{IQR}$. Onde $\text{IQR}$ é o intervalo interquartil ($Q_3 - Q_1$). Utiliza métricas robustas à presença de outliers (mediana e quartis), evitando que desempenhos anomalamente baixos ou altos distorçam a escala;
+  \item \textbf{QuantileTransformer}: $\tilde{y} = \Phi^{-1}\!\left( \frac{\text{rank}(y)}{n+1} \right)$. Onde $\Phi^{-1}$ é a função inversa da distribuição normal cumulativa e $n$ é o número de amostras. Mapeia os dados de forma não-linear para uma distribuição normal, suavizando variações extremas, mas alterando as distâncias relativas entre os ranks.
 \end{enumerate}
 
 As técnicas 1--4 são \textbf{monotônicas} (preservam a ordenação relativa), enquanto o QuantileTransformer é \textbf{não-linear} e pode distorcer a hierarquia de ranks entre algoritmos.
