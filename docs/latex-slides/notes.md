@@ -143,7 +143,7 @@ A tabela abaixo resume o tempo planejado para cada slide e fornece links rápido
 🗣️ **Fala do Apresentador:**
 > "Estruturamos nossa validação em quatro experimentos de complexidade progressiva.
 > 
-> Começamos no **Experimento 1** com 50 datasets mistos e 8 features calculadas manualmente. Expandimos para 144 e 200 datasets reais do OpenML nos **Experimentos 2 e 3**. E finalizamos com o **Experimento 4**, aplicando a biblioteca PyMFE para extrair automaticamente 78 meta-features estruturadas (estatísticas, teóricas e de agrupamento). Importante ressaltar que as meta-features de entrada $X$ também foram padronizadas usando o `StandardScaler`, ajustado estritamente no fold de treino.
+> Começamos no **Experimento 1** com 50 datasets mistos e 8 features calculadas manualmente. Expandimos para 144 e 200 datasets reais de famílias diferentes do OpenML nos **Experimentos 2 e 3**. E finalizamos com o **Experimento 4**, utilizando os mesmos 200 datasets de famílias diferentes, mas aplicando a biblioteca PyMFE para extrair automaticamente 78 meta-features estruturadas (estatísticas, teóricas e de agrupamento). Importante ressaltar que as meta-features de entrada $X$ também foram padronizadas usando o `StandardScaler`, ajustado estritamente no fold de treino.
 > 
 > Nossos algoritmos base de classificação foram KNN, Árvore de Decisão, Random Forest, Naive Bayes e SVM, avaliados via F1-macro.
 > 
@@ -259,10 +259,13 @@ A tabela abaixo resume o tempo planejado para cada slide e fornece links rápido
 > 
 > Vejam a evolução da significância: nos Experimentos 2 e 3, com poucas features, apenas o MLP apresentou diferenças estatisticamente significativas (com p-value de magnitude menor que $10^{-20}$), refletindo seu colapso. O Ridge, SVR e Random Forest mantiveram p-values não significativos.
 > 
-> Porém, no Experimento 4, o enriquecimento de meta-features com o PyMFE deu muito mais precisão e poder estatístico ao teste. Aqui, tanto o Ridge quanto o SVR passaram a apresentar diferenças estatisticamente significativas (com p-value de $10^{-4}$ e $10^{-11}$). O Random Forest permaneceu como o único modelo robusto e estatisticamente imune ao escalonamento."
+> Porém, no Experimento 4, o enriquecimento de meta-features com o PyMFE deu muito mais precisão e poder estatístico ao teste. Aqui, tanto o Ridge quanto o SVR passaram a apresentar diferenças estatisticamente significativas (com p-value de $10^{-4}$ e $10^{-11}$). O Random Forest permaneceu como o único modelo robusto e estatisticamente imune ao escalonamento.
+> 
+> Além disso, aplicamos o teste de Wilcoxon post-hoc para o MLP. Ele confirmou, com significância de $p < 10^{-4}$, que qualquer técnica de escalonamento do meta-alvo é estatisticamente superior ao Baseline nos experimentos com dados reais, provando a necessidade de tratar a escala do alvo para redes neurais."
 
 💡 **Notas do Apresentador:**
 * Destaque que a riqueza do PyMFE não apenas reduziu o erro, mas também deu poder estatístico para evidenciar as diferenças sutis de escalonamento que antes passavam despercebidas.
+* Enfatize o resultado do Wilcoxon para o MLP: deixar o meta-alvo bruto (Baseline) é estatisticamente a pior escolha para redes neurais nos dados reais.
 
 [🔼 Voltar ao topo](#-visão-geral-e-cronograma-dos-slides)
 

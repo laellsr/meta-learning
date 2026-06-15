@@ -238,8 +238,8 @@
         \begin{itemize}
           \item \textbf{Exp. 1:} 50 datasets (4 reais, 46 sintéticos), 8 features manuais.
           \item \textbf{Exp. 2:} 144 datasets reais (OpenML), 8 features manuais.
-          \item \textbf{Exp. 3:} 200 datasets reais (OpenML), 8 features manuais.
-          \item \textbf{Exp. 4:} \textbf{200 datasets reais}, \textbf{78 meta-features estruturadas (PyMFE)}.
+          \item \textbf{Exp. 3:} 200 datasets reais de famílias diferentes (OpenML), 8 features manuais.
+          \item \textbf{Exp. 4:} \textbf{200 datasets reais de famílias diferentes}, \textbf{78 meta-features estruturadas (PyMFE)}.
         \end{itemize}
       \end{block}
       \begin{block}{Validação Cruzada e Pré-processamento}
@@ -483,13 +483,17 @@
     
     \begin{column}{0.38\textwidth}
       \begin{block}{Evolução da Significância}
-        \footnotesize
+        \scriptsize
         \begin{itemize}
-          \item \textbf{MLP}: Único modelo com sensibilidade estatística em todos os cenários reais (Exp. 2, 3 e 4).
-          \item \textbf{Exp. 2 e 3}: Baixo volume de features manuais impediu a detecção de significância no SVR e Ridge.
-          \item \textbf{Exp. 4 (PyMFE)}: O enriquecimento de entrada deu maior poder estatístico, revelando a sensibilidade do \textbf{SVR} e \textbf{Ridge}.
-          \item \textbf{Random Forest}: Consistente e insensível em todos os cenários.
+          \item \textbf{MLP}: Único modelo com sensibilidade em todos os cenários reais.
+          \item \textbf{Exp. 2 e 3}: Poucas features impediram detecção no SVR/Ridge.
+          \item \textbf{Exp. 4 (PyMFE)}: Maior poder revelou a sensibilidade de \textbf{SVR} e \textbf{Ridge}.
+          \item \textbf{Random Forest}: Insensível em todos os casos.
         \end{itemize}
+      \end{block}
+      \begin{block}{Wilcoxon Post-hoc (MLP)}
+        \scriptsize
+        Confirmou que qualquer escalonamento é superior ao Baseline nos dados reais ($p < 10^{-4}$).
       \end{block}
     \end{column}
   \end{columns}

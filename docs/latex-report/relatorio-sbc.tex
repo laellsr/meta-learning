@@ -33,7 +33,7 @@
 
 \maketitle
 \begin{resumo}
-A seleção de algoritmos em aprendizado de máquina frequentemente utiliza meta-aprendizagem, onde um meta-modelo aprende a prever o desempenho de algoritmos base a partir das características dos conjuntos de dados (meta-features). No entanto, os escores de desempenho que compõem o meta-alvo variam em escala e distribuição, levantando a questão de se técnicas de escalonamento aplicadas ao meta-alvo afetam o meta-modelo. Inspirados por Amorim et al. (2022), que demonstraram que a escolha do escalonamento importa para classificadores de nível base, este trabalho transpõe a questão para o nível meta. Avaliamos quatro meta-modelos (Ridge, SVR, Random Forest, MLP) combinados com cinco estratégias de escalonamento (Baseline, StandardScaler, MinMaxScaler, RobustScaler, QuantileTransformer) em quatro cenários experimentais: 50 conjuntos de dados controlados, 144 datasets reais do OpenML com 8 meta-features manuais, 200 datasets reais com 8 meta-features manuais, e 200 datasets válidos com 78 meta-features extraídas automaticamente pelo PyMFE. Os resultados mostram que a sensibilidade ao escalonamento é determinada pela arquitetura: o MLP colapsa sem escalonamento centralizado (Spearman cai a 0,03 com meta-features em dados reais), o SVR se beneficia para tarefas de ranqueamento, o Random Forest é invariante e o QuantileTransformer degrada consistentemente a capacidade de ranqueamento. Meta-features mais ricas reduzem substancialmente o erro de predição em todos os meta-modelos. Nenhum escalonador domina universalmente.
+A seleção de algoritmos em aprendizado de máquina frequentemente utiliza meta-aprendizagem, onde um meta-modelo aprende a prever o desempenho de algoritmos base a partir das características dos conjuntos de dados (meta-features). No entanto, os escores de desempenho que compõem o meta-alvo variam em escala e distribuição, levantando a questão de se técnicas de escalonamento aplicadas ao meta-alvo afetam o meta-modelo. Inspirados por Amorim et al. (2022), que demonstraram que a escolha do escalonamento importa para classificadores de nível base, este trabalho transpõe a questão para o nível meta. Avaliamos quatro meta-modelos (Ridge, SVR, Random Forest, MLP) combinados com cinco estratégias de escalonamento (Baseline, StandardScaler, MinMaxScaler, RobustScaler, QuantileTransformer) em quatro cenários experimentais: 50 conjuntos de dados controlados, 144 datasets reais do OpenML com 8 meta-features manuais, 200 datasets reais de famílias diferentes com 8 meta-features manuais, e os mesmos 200 datasets de famílias diferentes com 78 meta-features extraídas automaticamente pelo PyMFE. Os resultados mostram que a sensibilidade ao escalonamento é determinada pela arquitetura: o MLP colapsa sem escalonamento centralizado (Spearman cai a 0,03 com meta-features em dados reais), o SVR se beneficia para tarefas de ranqueamento, o Random Forest é invariante e o QuantileTransformer degrada consistentemente a capacidade de ranqueamento. Meta-features mais ricas reduzem substancialmente o erro de predição em todos os meta-modelos. Nenhum escalonador domina universalmente.
 \end{resumo}
 
 % ============================================================
@@ -53,7 +53,7 @@ Embora as \textit{meta-features} de entrada normalmente passem por pré-processa
   \item Primeira investigação sistemática do impacto do escalonamento do \textit{meta-alvo} (e não das meta-features) em sistemas de meta-aprendizagem;
   \item Demonstração de que o MLP, sem escalonamento centralizado, produz recomendações próximas ao acaso com dados reais, resultado revertido pelo StandardScaler ou RobustScaler;
   \item Identificação do QuantileTransformer como prejudicial à capacidade de ranqueamento na maioria dos meta-modelos;
-  \item Validação em quatro cenários experimentais: (i) dados controlados; (ii) 144 datasets reais do OpenML; (iii) 200 datasets reais; e (iv) 200 datasets com 78 meta-features extraídas pelo PyMFE;
+  \item Validação em quatro cenários experimentais: (i) dados controlados; (ii) 144 datasets reais do OpenML; (iii) 200 datasets reais de famílias diferentes; e (iv) 200 datasets de famílias diferentes com 78 meta-features extraídas pelo PyMFE;
   \item Demonstração de que meta-features ricas (PyMFE) reduzem substancialmente o erro de predição.
 \end{itemize}
 
@@ -156,13 +156,13 @@ Foram conduzidos quatro experimentos:
 
 \textbf{Experimento 2 (realista inicial):} 144 datasets reais do OpenML~\cite{vanschoren2014openml}, selecionados por critérios de qualidade (sem valores ausentes, status ativo, dataset de referência).
 
-\textbf{Experimento 3 (realista expandido):} 200 datasets reais do OpenML, com maior diversidade de tarefas de classificação. O perfil das meta-features é apresentado na Tabela~\ref{tab:metadataset_profile}.
+\textbf{Experimento 3 (realista expandido):} 200 datasets reais do OpenML de famílias diferentes, garantindo que não haja redundância na distribuição de características das tarefas de classificação. Para isso, o catálogo foi filtrado eliminando duplicatas com base no prefixo do nome dos conjuntos de dados. O perfil das meta-features é apresentado na Tabela~\ref{tab:metadataset_profile}.
 
-\textbf{Experimento 4 (PyMFE):} os mesmos 200 datasets do Experimento~3, mas substituindo as 8 meta-features manuais por 78 descritores extraídos automaticamente pelo \texttt{PyMFE}~\cite{pymfe2020} (grupos \texttt{general}, \texttt{statistical}, \texttt{info-theory} e \texttt{clustering}), com imputação por mediana e recorte de valores superiores a $10^{10}$.
+\textbf{Experimento 4 (PyMFE):} os mesmos 200 datasets de famílias diferentes do Experimento~3, mas substituindo as 8 meta-features manuais por 78 descritores extraídos automaticamente pelo \texttt{PyMFE}~\cite{pymfe2020} (grupos \texttt{general}, \texttt{statistical}, \texttt{info-theory} e \texttt{clustering}), com imputação por mediana e recorte de valores superiores a $10^{10}$.
 
 \begin{table}[ht]
 \centering
-\caption{Perfil das meta-features dos Experimentos 3 e 4 (200 datasets reais do OpenML).}
+\caption{Perfil das meta-features dos Experimentos 3 e 4 (200 datasets reais de famílias diferentes do OpenML).}
 \label{tab:metadataset_profile}
 \small
 \begin{tabular}{lrrrrr}
@@ -400,7 +400,7 @@ SVR beneficiado pelo escalonamento         & MAE        & Spearman   & Spearman 
 \section{Conclusão}
 % ============================================================
 
-Este estudo analisou como o escalonamento do meta-alvo influencia o desempenho de sistemas de meta-aprendizagem na tarefa de selecionar algoritmos. Para isso, realizaram-se quatro experimentos: 50 datasets em ambiente controlado, 144 datasets reais (etapa inicial), 200 datasets reais (etapa expandida) e, finalmente, 200 datasets reais utilizando 78 meta-features extraídas automaticamente pelo PyMFE.
+Este estudo analisou como o escalonamento do meta-alvo influencia o desempenho de sistemas de meta-aprendizagem na tarefa de selecionar algoritmos. Para isso, realizaram-se quatro experimentos: 50 datasets em ambiente controlado, 144 datasets reais (etapa inicial), 200 datasets reais de famílias diferentes (etapa expandida) e, finalmente, 200 datasets reais de famílias diferentes utilizando 78 meta-features extraídas automaticamente pelo PyMFE.
 
 Os resultados deixam claro que \textbf{a sensibilidade ao escalonamento do meta-alvo depende muito mais da arquitetura do meta-modelo} do que do tipo ou da origem dos dados analisados:
 
