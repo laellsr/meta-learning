@@ -7,8 +7,7 @@ Esta pasta contém os arquivos fonte em LaTeX para a geração dos slides de apr
 - [slides.tex](file:///c:/Users/lael_/OneDrive/Documentos/UFAL/Meta-aprendizagem/docs/latex-slides/slides.tex): Arquivo fonte principal dos slides LaTeX Beamer.
 - [figures/](file:///c:/Users/lael_/OneDrive/Documentos/UFAL/Meta-aprendizagem/docs/latex-slides/figures/): Contém os gráficos utilizados na apresentação.
   - [comparativo_pymfe.png](file:///c:/Users/lael_/OneDrive/Documentos/UFAL/Meta-aprendizagem/docs/latex-slides/figures/comparativo_pymfe.png): Novo gráfico comparativo de resultados do Experimento 4 (gerado automaticamente com base nos dados reais).
-- [notes](file:///c:/Users/lael_/OneDrive/Documentos/UFAL/Meta-aprendizagem/docs/latex-slides/notes): Roteiro de fala detalhado (dialogos), tempos estimados e comentários para cada slide.
-- [notes.txt](file:///c:/Users/lael_/OneDrive/Documentos/UFAL/Meta-aprendizagem/docs/latex-slides/notes.txt): Cópia em formato `.txt` do roteiro de fala.
+- [notes.md](file:///c:/Users/lael_/OneDrive/Documentos/UFAL/Meta-aprendizagem/docs/latex-slides/notes.md): Roteiro de fala detalhado (diálogos), tempos estimados, comentários e links de fácil navegação em formato Markdown.
 
 ---
 

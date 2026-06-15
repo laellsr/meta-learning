@@ -1,0 +1,314 @@
+# Roteiro de Apresentação (15 Minutos)
+
+**Tema:** O Efeito do Escalonamento do Meta-Alvo na Regressão Meta  
+**Apresentador:** Lael Santa Rosa  
+**Instituição:** Instituto de Computação — Universidade Federal de Alagoas (UFAL)  
+**Tempo Total Estimado:** 14 minutos e 40 segundos (com margem de segurança para a introdução e dúvidas)
+
+---
+
+## 📅 Visão Geral e Cronograma dos Slides
+
+A tabela abaixo resume o tempo planejado para cada slide e fornece links rápidos para facilitar a navegação rápida.
+
+| Slide | Título / Tema | Tempo Estimado | Duração | Links Rápidos |
+| :---: | :--- | :---: | :---: | :---: |
+| **1** | [Capa (Título e Abertura)](#slide1) | 00:00 - 00:30 | 30s | [Ver Notas](#slide1) |
+| **2** | [Introdução e Motivação](#slide2) | 00:30 - 01:30 | 1m 00s | [Ver Notas](#slide2) |
+| **3** | [O Problema e as Hipóteses](#slide3) | 01:30 - 02:30 | 1m 00s | [Ver Notas](#slide3) |
+| **4** | [A Proposta (Pipeline)](#slide4) | 02:30 - 03:45 | 1m 15s | [Ver Notas](#slide4) |
+| **5** | [Metodologia - Escalonadores e Métricas](#slide5) | 03:45 - 04:45 | 1m 00s | [Ver Notas](#slide5) |
+| **6** | [Metodologia - Configuração Experimental](#slide6) | 04:45 - 05:45 | 1m 00s | [Ver Notas](#slide6) |
+| **7** | [Resultados - Distribuição do Meta-Alvo](#slide7) | 05:45 - 06:45 | 1m 00s | [Ver Notas](#slide7) |
+| **8** | [Performance Geral e Melhores Configurações](#slide8) | 06:45 - 07:45 | 1m 00s | [Ver Notas](#slide8) |
+| **9** | [Resultados - Impacto Geral e Comparativo](#slide9) | 07:45 - 08:45 | 1m 00s | [Ver Notas](#slide9) |
+| **10** | [Resultados - O Colapso do MLP](#slide10) | 08:45 - 09:45 | 1m 00s | [Ver Notas](#slide10) |
+| **11** | [Resultados - Ridge, SVR e Random Forest](#slide11) | 09:45 - 10:45 | 1m 00s | [Ver Notas](#slide11) |
+| **12** | [Validação Estatística - Teste de Friedman](#slide12) | 10:45 - 11:45 | 1m 00s | [Ver Notas](#slide12) |
+| **13** | [Discussão: O Paradoxo do QuantileTransformer](#slide13) | 11:45 - 12:45 | 1m 00s | [Ver Notas](#slide13) |
+| **14** | [Conclusões e Recomendações](#slide14) | 12:45 - 14:00 | 1m 15s | [Ver Notas](#slide14) |
+
+---
+
+## ⏱️ Roteiro Slide a Slide
+
+---
+
+### <a id="slide1"></a>Slide 1: Capa (Título e Abertura)
+⏱️ **Tempo Estimado:** 00:00 - 00:30 (30 segundos)
+
+🗣️ **Fala do Apresentador:**
+> "Olá a todos! Meu nome é Lael Santa Rosa e hoje vou apresentar o trabalho intitulado 'O Efeito do Escalonamento do Meta-Alvo na Performance de Sistemas de Meta-Aprendizagem para Seleção de Algoritmos'. Este projeto foi desenvolvido no Instituto de Computação da Universidade Federal de Alagoas e investiga como o pré-processamento da nossa variável dependente de desempenho afeta a recomendação final de algoritmos."
+
+💡 **Notas do Apresentador:**
+* Cumprimente a banca ou a plateia com tom calmo e profissional.
+* Destaque que o foco principal é o escalonamento do **alvo (meta-alvo)**, não das entradas.
+
+[🔼 Voltar ao topo](#-visão-geral-e-cronograma-dos-slides)
+
+---
+
+### <a id="slide2"></a>Slide 2: Introdução e Motivação
+⏱️ **Tempo Estimado:** 00:30 - 01:30 (1 minuto)
+
+🗣️ **Fala do Apresentador:**
+> "Na prática do Aprendizado de Máquina, a seleção do melhor algoritmo para um novo problema é uma tarefa exaustiva e cara. A meta-aprendizagem surge como uma solução inteligente, usando experiências passadas para mapear as características de datasets antigos — que chamamos de meta-features — para o desempenho obtido pelos algoritmos de nível base — o meta-alvo.
+> 
+> Embora as meta-features de entrada passem por uma padronização rigorosa, o meta-alvo costuma ser usado em seu formato bruto (como valores de acurácia ou F1-score).
+> 
+> Nossa principal motivação vem do artigo de Amorim et al. (2022). Eles provaram no nível base que a escolha da técnica de escalonamento dos dados de entrada muda completamente o desempenho dos classificadores. Diante disso, a nossa pergunta foi: será que transpor esse problema para o nível meta, escalonando o meta-alvo, também gera variações importantes de desempenho?"
+
+💡 **Notas do Apresentador:**
+* Aponte para o diagrama simplificado no slide para mostrar a lacuna que este trabalho preenche (foco no meta-alvo bruto).
+* Mantenha a fala fluida e evite ler os tópicos.
+
+[🔼 Voltar ao topo](#-visão-geral-e-cronograma-dos-slides)
+
+---
+
+### <a id="slide3"></a>Slide 3: O Problema e as Hipóteses
+⏱️ **Tempo Estimado:** 01:30 - 02:30 (1 minuto)
+
+🗣️ **Fala do Apresentador:**
+> "Formalizando a nossa pesquisa, o problema que buscamos responder é: O escalonamento do meta-alvo em sistemas de meta-aprendizagem` produz diferenças relevantes de performance? Existe alguma recomendação geral que funcione universalmente?
+> 
+> Para guiar o estudo, definimos três hipóteses:
+> 
+> * **Primeira:** Meta-modelos sensíveis ao escalonamento no nível base, como Redes Neurais e SVR, também apresentarão diferenças estatisticamente significativas no nível meta.
+> * **Segunda:** Meta-modelos baseados em árvores, como o Random Forest, serão insensíveis a transformações de escala lineares.
+> * **Terceira:** Não existirá uma técnica única que seja superior para todos os meta-modelos."
+
+💡 **Notas do Apresentador:**
+* Enfatize a diferença entre modelos baseados em gradiente (MLP) e baseados em regras/divisão de espaço (Random Forest). Isso prepara o público para os resultados.
+
+[🔼 Voltar ao topo](#-visão-geral-e-cronograma-dos-slides)
+
+---
+
+### <a id="slide4"></a>Slide 4: A Proposta (Pipeline)
+⏱️ **Tempo Estimado:** 02:30 - 03:45 (1 minuto e 15 segundos)
+
+🗣️ **Fala do Apresentador:**
+> "Nossa proposta consistiu em introduzir um passo de escalonamento $S$ no alvo $Y$ antes do treinamento.
+> 
+> Como funciona o nosso pipeline? Na fase de treino, nós extraímos as meta-features $X$ e as performances base $Y$. Ajustamos o escalonador $S$ apenas no $Y$ de treino para evitar o vazamento de dados (data leakage). O meta-modelo é então treinado para prever esse $Y$ escalonado.
+> 
+> Na fase de teste, quando chega um novo dataset, o meta-modelo gera uma previsão na escala transformada. Em seguida, aplicamos a transformação reversa $S^{-1}$ para retornar os desempenhos previstos para a escala original do F1-score. Isso nos permite calcular as métricas de erro real e fazer a recomendação do melhor algoritmo de forma justa."
+
+💡 **Notas do Apresentador:**
+* Aponte para os fluxos do diagrama do pipeline (Fase de Treino no topo e Fase de Teste embaixo).
+* Explique claramente que a transformação inversa é vital para não distorcer as métricas de validação.
+
+> [!IMPORTANT]
+> **Em caso de questionamento da banca sobre "Vazamento de Dados (Data Leakage)":**
+> Esclareça que calcular os parâmetros do escalonador (como a média/desvio do `StandardScaler` ou o mínimo/máximo do `MinMaxScaler`) usando os dados do conjunto de teste faria o meta-modelo "aprender" antecipadamente estatísticas que ele não deveria conhecer, inflando artificialmente os resultados. Por isso, o "fit" é feito exclusivamente no $Y$ de treino.
+
+[🔼 Voltar ao topo](#-visão-geral-e-cronograma-dos-slides)
+
+---
+
+### <a id="slide5"></a>Slide 5: Metodologia - Escalonadores e Métricas
+⏱️ **Tempo Estimado:** 03:45 - 04:45 (1 minuto)
+
+🗣️ **Fala do Apresentador:**
+> "Avaliamos cinco estratégias para tratar a escala do nosso meta-alvo:
+> 
+> 1. O **Baseline** mantém os dados brutos de desempenho.
+> 2. O **StandardScaler** centraliza os dados na média e os ajusta pelo desvio padrão, gerando média zero e variância unitária, o que é ideal para otimizadores numéricos.
+> 3. O **MinMaxScaler** comprime linearmente os dados para o intervalo de zero a um, com base nos valores máximo e mínimo.
+> 4. O **RobustScaler** realiza a centralização pela mediana e divide pelo intervalo interquartil (IQR), impedindo que outliers de performance distorçam a escala.
+> 5. E o **QuantileTransformer** realiza uma transformação não-linear por quantis para forçar os dados a seguirem uma distribuição normal.
+> 
+> As técnicas lineares de 1 a 4 preservam perfeitamente a ordenação dos dados, enquanto o QuantileTransformer, por ser não-linear, pode alterar a hierarquia relativa de ranks.
+> 
+> Para medir a qualidade, usamos o MAE para erro absoluto na escala original, a correlação de Spearman para medir a capacidade de ordenação dos algoritmos, e a Acc@1 para medir a acurácia de recomendar o melhor algoritmo."
+
+💡 **Notas do Apresentador:**
+* Explique brevemente o funcionamento matemático rápido de cada escalonador:
+  * **Baseline:** F1 bruto.
+  * **Standard:** $\frac{x - \text{média}}{\text{desvio padrão}}$
+  * **MinMax:** $\frac{x - \min}{\max - \min}$
+  * **Robust:** $\frac{x - \text{mediana}}{Q3 - Q1}$ (imune a outliers).
+  * **Quantile:** mapeamento não-linear para a curva gaussiana.
+* Destaque a diferença entre transformações lineares e monotônicas (`Standard`, `MinMax`, `Robust`), que mantêm a ordem original, e a não-linear (`Quantile`), que pode distorcer a diferença relativa e prejudicar a métrica de recomendação `Acc@1`.
+* Essa distinção será chave ao explicar o "paradoxo" do `QuantileTransformer` mais à frente.
+
+[🔼 Voltar ao topo](#-visão-geral-e-cronograma-dos-slides)
+
+---
+
+### <a id="slide6"></a>Slide 6: Metodologia - Configuração Experimental
+⏱️ **Tempo Estimado:** 04:45 - 05:45 (1 minuto)
+
+🗣️ **Fala do Apresentador:**
+> "Estruturamos nossa validação em quatro experimentos de complexidade progressiva.
+> 
+> Começamos no **Experimento 1** com 50 datasets mistos e 8 features calculadas manualmente. Expandimos para 144 e 200 datasets reais do OpenML nos **Experimentos 2 e 3**. E finalizamos com o **Experimento 4**, aplicando a biblioteca PyMFE para extrair automaticamente 78 meta-features estruturadas (estatísticas, teóricas e de agrupamento). Importante ressaltar que as meta-features de entrada $X$ também foram padronizadas usando o `StandardScaler`, ajustado estritamente no fold de treino.
+> 
+> Nossos algoritmos base de classificação foram KNN, Árvore de Decisão, Random Forest, Naive Bayes e SVM, avaliados via F1-macro.
+> 
+> No nível meta, testamos quatro regressores prevendo as 5 saídas simultaneamente: Ridge (linear), SVR (não-linear com kernel), Random Forest (árvores) e MLP (rede neural multicamadas)."
+
+💡 **Notas do Apresentador:**
+* Deixe claro que a regressão é do tipo **multi-saída (multi-output)**, ou seja, o modelo prevê os cinco desempenhos de uma vez.
+
+[🔼 Voltar ao topo](#-visão-geral-e-cronograma-dos-slides)
+
+---
+
+### <a id="slide7"></a>Slide 7: Resultados - Distribuição do Meta-Alvo
+⏱️ **Tempo Estimado:** 05:45 - 06:45 (1 minuto)
+
+🗣️ **Fala do Apresentador:**
+> "Para entender os resultados, primeiro precisamos olhar para a distribuição do nosso meta-alvo. Esta tabela mostra as estatísticas descritivas das performances F1-macro dos algoritmos base ao longo dos 200 datasets reais.
+> 
+> Notamos uma variabilidade muito alta, indicada pelos desvios padrões em torno de 0.20. Temos tarefas extremamente simples, onde o F1 chega a 1.0, e tarefas muito complexas ou desbalanceadas onde o F1 desce a quase zero.
+> 
+> Essa alta amplitude de valores sem centralização dificulta a convergência dos pesos de algoritmos baseados em gradiente, justificando por que precisamos estudar técnicas de escalonamento nesse contexto."
+
+💡 **Notas do Apresentador:**
+* Use a tabela do slide para mostrar que alguns algoritmos, como o SVM, têm média menor (0.589) mas desvio padrão maior (0.239), mostrando que o alvo oscila muito.
+* **Desvio Padrão alto** indica que a base de dados meta é extremamente heterogênea: contém tarefas de classificação muito simples (onde todos os classificadores beiram 1.0) e tarefas muito complexas ou com classes raras (onde o desempenho cai drasticamente perto de 0.0).
+
+[🔼 Voltar ao topo](#-visão-geral-e-cronograma-dos-slides)
+
+---
+
+### <a id="slide8"></a>Slide 8: Performance Geral e Melhores Configurações por Experimento
+⏱️ **Tempo Estimado:** 06:45 - 07:45 (1 minuto)
+
+🗣️ **Fala do Apresentador:**
+> "Apresentamos agora a performance geral e as melhores configurações encontradas ao longo de todos os quatro experimentos do nosso estudo.
+> 
+> Esta tabela sintetiza a evolução dos meta-modelos, mostrando o MAE, a correlação de Spearman e a Acc@1 para as melhores técnicas recomendadas lado a lado com o QuantileTransformer como scaler comparativo.
+> 
+> Vemos de forma clara que, para o Ridge, SVR e Random Forest, os erros absolutos tendem a ser menores nos cenários sintéticos controlados (Experimento 1). Ao migrar para dados reais (Experimentos 2 e 3), o erro aumenta devido ao ruído dos dados reais, mas a adoção das 78 meta-features do PyMFE no Experimento 4 reduz drasticamente esse erro de forma consistente para todos os modelos.
+> 
+> Além disso, comparando com a coluna 'Scaler Comparativo', notamos que o QuantileTransformer geralmente prejudica a acurácia de recomendação Acc@1 de quase todos os modelos. Porém, o MLP no Experimento 4 foi uma exceção notável onde o QuantileTransformer obteve a maior correlação de Spearman, chegando a 0,4355."
+
+💡 **Notas do Apresentador:**
+* Explique o panorama dos 4 experimentos, mostrando como o erro (MAE) sobe ao migrar de sintético (Exp 1) para dados reais (Exp 2 e 3), mas é reduzido drasticamente no Exp 4 graças à riqueza de meta-features do PyMFE.
+* Chame a atenção para as linhas destacadas em verde-teal claro, que representam o cenário do PyMFE (Exp. 4).
+* Destaque a comparação com a coluna 'Scaler Comparativo' que apresenta o QuantileTransformer para todos os experimentos. Mostre que o QT geralmente degrada o desempenho (especialmente Acc@1), mas foi a melhor técnica de ranqueamento (Spearman = 0,4355) para o MLP no Exp 4.
+
+[🔼 Voltar ao topo](#-visão-geral-e-cronograma-dos-slides)
+
+---
+
+### <a id="slide9"></a>Slide 9: Resultados - Impacto Geral e Comparativo (Manuais vs. PyMFE)
+⏱️ **Tempo Estimado:** 07:45 - 08:45 (1 minuto)
+
+🗣️ **Fala do Apresentador:**
+> "Este gráfico consolida de forma sobreposta os resultados gerais de ambos os experimentos para facilitar a comparação visual direta.
+> 
+> As barras sólidas de cor forte representam o Experimento 4 (com as 78 features do PyMFE) e as barras translúcidas com contorno representam o Experimento 3 (com as 8 features manuais).
+> 
+> Observem que para o MAE, à esquerda, as barras translúcidas do Experimento 3 ficam no topo, mostrando que o erro era consistentemente maior. As barras sólidas mais baixas representam o avanço com o PyMFE.
+> 
+> Para a Spearman e Acc@1, no meio e à direita, as barras sólidas do Experimento 4 se sobressaem acima das translúcidas do Experimento 3 na grande maioria dos casos, comprovando graficamente o ganho de qualidade de ranking e recomendação."
+
+💡 **Notas do Apresentador:**
+* Explique como as duas informações foram sobrepostas no gráfico: barras sólidas (Exp. 4) versus contornos translúcidos (Exp. 3).
+* Destaque o contraste visual do MLP (onde StandardScaler e RobustScaler sólidos sobem muito em relação aos translúcidos).
+
+[🔼 Voltar ao topo](#-visão-geral-e-cronograma-dos-slides)
+
+---
+
+### <a id="slide10"></a>Slide 10: Resultados - O Colapso do MLP
+⏱️ **Tempo Estimado:** 08:45 - 09:45 (1 minuto)
+
+🗣️ **Fala do Apresentador:**
+> "Detalpando o colapso e a recuperação do MLP: ao longo de todos os experimentos com dados reais, o Baseline sempre colapsa (Spearman de 0.08 e Acc@1 de 21.2% no Exp. 4).
+> 
+> O MinMaxScaler também falha porque ele apenas achata os valores no intervalo 0-1, mas não centraliza a distribuição nem diminui a influência de outliers.
+> 
+> StandardScaler e RobustScaler salvam a rede neural porque centralizam os dados em torno do zero e reduzem a dispersão extrema. No Experimento 4, o StandardScaler reduz o MAE em 36.3% e eleva a Spearman para 0.38. Isso mostra que, para modelos que aprendem com gradiente, tratar o alvo é obrigatório."
+
+💡 **Notas do Apresentador:**
+* Destaque que a **centralização** é o fator crítico para o MLP, diferentemente do `MinMaxScaler` que apenas redimensiona o intervalo.
+
+[🔼 Voltar ao topo](#-visão-geral-e-cronograma-dos-slides)
+
+---
+
+### <a id="slide11"></a>Slide 11: Resultados - Ridge, SVR e Random Forest
+⏱️ **Tempo Estimado:** 09:45 - 10:45 (1 minuto)
+
+🗣️ **Fala do Apresentador:**
+> "Para os outros três modelos, observamos comportamentos bem distintos:
+> 
+> * O **Ridge Regression** é matematicamente invariante a transformações lineares no alvo. Sua equação compensa a escala e a inversão devolve os mesmos valores. Por isso, as primeiras quatro técnicas são idênticas.
+> * O **SVR** foi um dos maiores beneficiados pelo escalonamento. No Experimento 4, tivemos melhora altamente significativa de erro absoluto com o RobustScaler (MAE caindo para 0,0884) e ganhos expressivos na capacidade de recomendação com o StandardScaler, onde o Acc@1 subiu de 36,8% para 49,5%.
+> * O **Random Forest** confirmou ser insensível a escalas lineares, como esperado para modelos de árvore. A variação foi insignificante (Friedman $p = 0,333$). Contudo, o MinMaxScaler alcançou a melhor Spearman geral do estudo (0,6157) e Acc@1 de 51,5%."
+
+💡 **Notas do Apresentador:**
+* Contraponha a invariância teórica do Ridge e a robustez do RF com o ganho prático expressivo que o SVR obteve com o escalonamento.
+
+[🔼 Voltar ao topo](#-visão-geral-e-cronograma-dos-slides)
+
+---
+
+### <a id="slide12"></a>Slide 12: Validação Estatística - Teste de Friedman
+⏱️ **Tempo Estimado:** 10:45 - 11:45 (1 minuto)
+
+🗣️ **Fala do Apresentador:**
+> "Para dar rigor científico às nossas análises, realizamos o teste estatístico não-paramétrico de Friedman com nível de significância de 5%, avaliando se os diferentes escalonadores provocam alterações estatisticamente relevantes no MAE do meta-modelo.
+> 
+> Esta tabela mostra o resultado para os Experimentos 2, 3 e 4.
+> 
+> Vejam a evolução da significância: nos Experimentos 2 e 3, com poucas features, apenas o MLP apresentou diferenças estatisticamente significativas (com p-value de magnitude menor que $10^{-20}$), refletindo seu colapso. O Ridge, SVR e Random Forest mantiveram p-values não significativos.
+> 
+> Porém, no Experimento 4, o enriquecimento de meta-features com o PyMFE deu muito mais precisão e poder estatístico ao teste. Aqui, tanto o Ridge quanto o SVR passaram a apresentar diferenças estatisticamente significativas (com p-value de $10^{-4}$ e $10^{-11}$). O Random Forest permaneceu como o único modelo robusto e estatisticamente imune ao escalonamento."
+
+💡 **Notas do Apresentador:**
+* Destaque que a riqueza do PyMFE não apenas reduziu o erro, mas também deu poder estatístico para evidenciar as diferenças sutis de escalonamento que antes passavam despercebidas.
+
+[🔼 Voltar ao topo](#-visão-geral-e-cronograma-dos-slides)
+
+---
+
+### <a id="slide13"></a>Slide 13: Discussão: O Paradoxo do QuantileTransformer
+⏱️ **Tempo Estimado:** 11:45 - 12:45 (1 minuto)
+
+🗣️ **Fala do Apresentador:**
+> "Gostaria de detalhar o 'Paradoxo do QuantileTransformer'. Por ser um mapeamento não-linear por quantis, ele normaliza a distribuição do alvo e reduz o MAE.
+> 
+> Porém, ele altera as distâncias relativas entre os desempenhos originais, deformando a hierarquia (ranks) dos algoritmos.
+> 
+> Isso explica por que a acurácia de recomendação Acc@1 caiu em quase todos os modelos. Portanto, se o seu objetivo é ordenar ou recomendar o melhor, evite-o.
+> 
+> Uma única exceção notável foi o MLP no Experimento 4, que obteve a sua maior Spearman com o QuantileTransformer, indicando que espaços mais ricos de entrada ajudam a rede neural a se beneficiar desse mapeamento normalizado para tarefas de ordenação."
+
+💡 **Notas do Apresentador:**
+* Explique o paradoxo com um exemplo: se um algoritmo ganha de outro por 0,01 de F1, o QuantileTransformer pode afastar essa diferença artificialmente, prejudicando a inversão de escala na inferência.
+
+> [!WARNING]
+> **Atenção ao utilizar o QuantileTransformer:**
+> Ele deforma a hierarquia relativa de ranqueamento, o que diretamente prejudica a métrica de recomendação final de algoritmos (`Acc@1`). Evite o seu uso a menos que o meta-modelo de rede neural (MLP) seja usado especificamente com foco em ordenação (Spearman) em espaços com alta dimensionalidade de meta-features.
+
+[🔼 Voltar ao topo](#-visão-geral-e-cronograma-dos-slides)
+
+---
+
+### <a id="slide14"></a>Slide 14: Conclusões e Recomendações
+⏱️ **Tempo Estimado:** 12:45 - 14:00 (1 minuto e 15 segundos)
+
+🗣️ **Fala do Apresentador:**
+> "Para concluir, validamos com sucesso nossas hipóteses. O escalonamento do meta-alvo é de fato crítico e sua sensibilidade depende da arquitetura. A riqueza das meta-features (PyMFE) traz ganhos massivos na redução de erros.
+> 
+> Recomendamos o seguinte guia prático:
+> 
+> * **Para Random Forest:** use Baseline ou MinMaxScaler.
+> * **Para SVR:** StandardScaler (para ranking/recomendação) ou RobustScaler (para erro).
+> * **Para MLP:** StandardScaler ou RobustScaler, evitando MinMaxScaler e Baseline.
+> 
+> Como regra prática, o **RobustScaler** é a escolha padrão mais segura e equilibrada.
+> 
+> Muito obrigado pela atenção, e agora estou aberto a dúvidas!"
+
+💡 **Notas do Apresentador:**
+* Termine a apresentação demonstrando segurança e agradeça de forma polida.
+* Mantenha a tabela de recomendações na tela durante o debate de dúvidas.
+
+[🔼 Voltar ao topo](#-visão-geral-e-cronograma-dos-slides)
