@@ -1,0 +1,502 @@
+\documentclass[12pt]{article}
+
+\usepackage{sbc-template}
+\usepackage{graphicx,url}
+\usepackage[utf8]{inputenc}
+\usepackage[brazilian]{babel}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{colortbl}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, fit, backgrounds}
+\usepackage{enumitem}
+\setlist{itemsep=0.5em}
+\usepackage{indentfirst}
+\usepackage{float}
+
+\sloppy
+\raggedbottom
+
+\title{O Efeito do Escalonamento do Meta-Alvo na Performance de Sistemas de Meta-Aprendizagem para Seleção de Algoritmos}
+
+\author{Lael de Lima Santa Rosa\inst{1}}
+
+\address{Instituto de Computação -- Universidade Federal de Alagoas (UFAL)\\
+  Maceió -- AL -- Brasil
+  \email{llsr@ic.ufal.br}
+}
+
+\begin{document}
+
+\maketitle
+\begin{resumo}
+A seleção de algoritmos em aprendizado de máquina frequentemente utiliza meta-aprendizagem, onde um meta-modelo aprende a prever o desempenho de algoritmos base a partir das características dos conjuntos de dados (meta-features). No entanto, os escores de desempenho que compõem o meta-alvo variam em escala e distribuição, levantando a questão de se técnicas de escalonamento aplicadas ao meta-alvo afetam o meta-modelo. Inspirados por Amorim et al. (2022), que demonstraram que a escolha do escalonamento importa para classificadores de nível base, este trabalho transpõe a questão para o nível meta. Avaliamos quatro meta-modelos (Ridge, SVR, Random Forest, MLP) combinados com cinco estratégias de pré-processamento e transformação do meta-alvo (Baseline, StandardScaler, MinMaxScaler, RobustScaler, QuantileTransformer) em quatro cenários experimentais: 50 conjuntos de dados controlados, 144 e 200 datasets reais do OpenML descritos por 8 meta-features estatísticas, e os mesmos dados expandidos para 78 descritores via PyMFE. Os resultados mostram que a sensibilidade ao pré-processamento do alvo é determinada pela arquitetura: o MLP colapsa na ausência de padronização do meta-alvo $Y$ (StandardScaler ou RobustScaler), apresentando correlação de Spearman de apenas 0,03 em dados reais e ganho prático em nível base inferior à escolha aleatória; o SVR se beneficia substancialmente para recomendação quando combinado com padronização robusta (RobustScaler), superando a melhor heurística estática; o Random Forest é invariante a transformações lineares e o QuantileTransformer degrada a capacidade de ranqueamento na maioria dos meta-modelos. A avaliação em nível base comprova que a transformação do meta-alvo dita o ganho real entregue ao usuário, e meta-features mais ricas reduzem substancialmente o erro de predição em todos os meta-modelos. Nenhuma técnica domina universalmente.
+\end{resumo}
+
+% ============================================================
+\section{Introdução}
+% ============================================================
+
+A seleção de algoritmos de aprendizado de máquina (ML) é uma das tarefas mais custosas na construção de sistemas inteligentes. Em vez de testar exaustivamente todos os candidatos para um novo dataset --- inviável em tempo e recursos ---, a \textit{meta-aprendizagem} usa experiências passadas para treinar um meta-modelo que mapeia características dos datasets (\textit{meta-features}) ao desempenho real dos algoritmos base (\textit{meta-alvo}), permitindo recomendar a melhor opção para um novo cenário~\cite{vanschoren2018meta}.
+
+Embora as \textit{meta-features} de entrada normalmente passem por pré-processamento cuidadoso, os escores de desempenho que compõem o \textit{meta-alvo} costumam ser usados em sua forma bruta. Métricas como o F1-macro, porém, variam muito em escala e distribuição, e essa amplitude pode prejudicar meta-modelos sensíveis a essas variações. O trabalho de \cite{amorim2022choice} demonstrou, no nível base, que \textit{``a escolha da técnica de escalonamento importa para a performance de classificação''} --- este trabalho transpõe a mesma questão para o nível meta.
+
+\textbf{Problema:} O escalonamento e transformação do meta-alvo em sistemas de meta-aprendizagem para seleção de algoritmos produz diferenças relevantes de performance? Existe uma recomendação geral que funcione para qualquer meta-modelo?
+
+\textbf{Hipóteses:} (H1) Meta-modelos sensíveis ao escalonamento apresentarão diferença estatisticamente significativa entre as técnicas. (H2) Meta-modelos baseados em árvores serão insensíveis. (H3) Não existirá uma técnica universalmente superior.
+
+\textbf{Contribuições principais:}
+\begin{itemize}
+  \item Primeira investigação sistemática do impacto do escalonamento e transformação do \textit{meta-alvo} (e não das meta-features) em sistemas de meta-aprendizagem;
+  \item Demonstração de que o MLP colapsa na ausência de padronização do meta-alvo $Y$, gerando recomendações próximas ao acaso em dados reais mesmo quando as meta-features $X$ estão padronizadas --- falha superada ao remover o viés médio do alvo via StandardScaler ou RobustScaler;
+  \item Avaliação inédita em nível base demonstrando que o SVR com RobustScaler supera a melhor heurística estática (Single Best) e reduz a perda média (\textit{regret}) frente ao Oráculo para $0{,}018$, enquanto o MLP sem tratamento colapsa abaixo da escolha aleatória;
+  \item Identificação do QuantileTransformer como prejudicial à capacidade de ranqueamento na maioria dos meta-modelos;
+  \item Validação em quatro cenários progressivos: dados sintéticos controlados, 144 e 200 datasets reais do OpenML descritos por 8 meta-features estatísticas, e os mesmos 200 datasets expandidos para 78 descritores via biblioteca PyMFE;
+  \item Demonstração de que conjuntos abrangentes de meta-features reduzem substancialmente o erro de predição.
+\end{itemize}
+
+% ============================================================
+\section{Proposta}
+% ============================================================
+
+\subsection{Formulação do Problema}
+
+Seja $\mathcal{D} = \{d_1, \dots, d_N\}$ um conjunto de $N$ datasets de classificação. Para cada $d_i$, extraímos um vetor de meta-features $\mathbf{x}_i \in \mathbb{R}^D$, formando a matriz $X \in \mathbb{R}^{N \times D}$. Avaliamos $M$ algoritmos base $\mathcal{A} = \{a_1, \dots, a_M\}$ em cada dataset, obtendo o vetor de performances $\mathbf{y}_i \in \mathbb{R}^M$ (F1-macro de cada $a_j$ em $d_i$) e a matriz de meta-alvo $Y \in \mathbb{R}^{N \times M}$. O objetivo é treinar uma função $f$ que preveja $\hat{\mathbf{y}}_i \approx \mathbf{y}_i$ a partir de $\mathbf{x}_i$, recomendando o algoritmo com melhor estimativa para um novo dataset.
+
+\subsection{Pipeline de Meta-Aprendizagem com Transformação do Meta-Alvo}
+
+A proposta central é estudar o efeito de uma transformação $S: \mathbb{R}^{N \times M} \rightarrow \mathbb{R}^{N \times M}$ aplicada sobre $Y$ \textit{antes} do treinamento. A Figura~\ref{fig:pipeline} ilustra o pipeline proposto.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+  node distance=0.5cm and 0.4cm,
+  box/.style={draw, rounded corners, minimum width=2.0cm, minimum height=0.7cm,
+              font=\scriptsize, align=center, fill=white},
+  databox/.style={box, fill=blue!10},
+  procbox/.style={box, fill=orange!15},
+  modelbox/.style={box, fill=green!15},
+  evalbox/.style={box, fill=red!10},
+  arr/.style={-{Stealth[scale=0.7]}, thick},
+  phase/.style={draw=gray!50, dashed, rounded corners, inner sep=4pt}
+]
+
+% Nodes – Train phase
+\node[databox]  (datasets)  {Datasets\\ $\mathcal{D}$};
+\node[procbox,  right=of datasets]  (mf)    {Meta-features\\ $X$};
+\node[procbox,  right=of mf]        (perf)  {Avaliação\\ base $Y$};
+\node[procbox,  right=of perf]      (scale) {Scaler $S$\\ sobre $Y_{train}$};
+\node[modelbox, right=of scale]     (train) {Treina\\ $f(X \!\to\! Y_s)$};
+
+% Nodes – Test phase (below)
+\node[databox,  below=1.0cm of datasets] (newds)  {Novo\\ dataset};
+\node[procbox,  right=of newds]          (newmf)  {Meta-features\\ $\mathbf{x}_{new}$};
+\node[modelbox, right=of newmf]          (pred)   {Predição\\ $\hat{\mathbf{y}}_s$};
+\node[procbox,  right=of pred]           (inv)    {Inversão\\ $S^{-1}(\hat{\mathbf{y}}_s)$};
+\node[evalbox,  right=of inv]            (rec)    {Recomenda\\ $a^*$};
+
+% Arrows – Train
+\draw[arr] (datasets) -- (mf);
+\draw[arr] (mf)       -- (perf);
+\draw[arr] (perf)     -- (scale);
+\draw[arr] (scale)    -- (train);
+
+% Arrows – Test
+\draw[arr] (newds)  -- (newmf);
+\draw[arr] (newmf)  -- (pred);
+\draw[arr] (train)  -- (pred);
+\draw[arr] (pred)   -- (inv);
+\draw[arr] (inv)    -- (rec);
+
+% Phase boxes
+\begin{scope}[on background layer]
+  \node[phase, fit=(datasets)(mf)(perf)(scale)(train),
+        label={[font=\scriptsize\itshape]above:Fase de Treino}] {};
+  \node[phase, fit=(newds)(newmf)(pred)(inv)(rec),
+        label={[font=\scriptsize\itshape]below:Fase de Teste/Inferência}] {};
+\end{scope}
+\end{tikzpicture}
+\caption{Pipeline de meta-aprendizagem com transformação do meta-alvo. O pré-processador $S$ é ajustado exclusivamente nos dados de treino, evitando \textit{data leakage}. A inversão $S^{-1}$ garante que as métricas finais sejam avaliadas na escala original do F1-score.}
+\label{fig:pipeline}
+\end{figure}
+
+\subsection{Técnicas de Transformação e Padronização do Meta-Alvo}
+
+As cinco estratégias aplicadas coluna a coluna sobre a matriz de meta-alvo $Y$ compreendem diferentes famílias de pré-processamento:
+\begin{enumerate}
+  \item \textbf{Baseline} (dados brutos): $\tilde{y} = y$. Grupo de controle sem qualquer transformação, mantendo os valores originais de desempenho (F1-macro);
+  \item \textbf{StandardScaler} (\textbf{Padronização Z-score}): $\tilde{y} = (y - \mu) / \sigma$. Realiza a centralização na média ($\mu=0$) combinada com escalonamento por variância unitária ($\sigma=1$), auxiliando na convergência de métodos baseados em gradiente;
+  \item \textbf{MinMaxScaler} (\textbf{Normalização Min-Max}): $\tilde{y} = (y - y_{\min}) / (y_{\max} - y_{\min})$. Mapeia linearmente os valores para o intervalo fechado $[0, 1]$, preservando a forma da distribuição original e a proporção das distâncias, mas mantendo a média deslocada;
+  \item \textbf{RobustScaler} (\textbf{Padronização Robusta}): $\tilde{y} = (y - \text{mediana}) / \text{IQR}$. Emprega métricas robustas à presença de outliers (mediana nula e escala pelo intervalo interquartil $Q_3 - Q_1$), evitando que desempenhos extremos distorçam a distribuição;
+  \item \textbf{QuantileTransformer} (\textbf{Transformação Quantílica}): $\tilde{y} = \Phi^{-1}\!\left( \frac{\text{rank}(y)}{n+1} \right)$. Realiza um mapeamento não-linear para uma distribuição normal via função quantílica empírica, suavizando variações extremas, mas alterando as distâncias relativas entre os ranks.
+\end{enumerate}
+
+Importa ressaltar a distinção matemática fundamental entre as famílias: o StandardScaler e o RobustScaler realizam \textbf{padronização} (centralização com média ou mediana zero e divisão por medida de dispersão), propriedade essencial para estabilizar o cálculo de gradientes no MLP e evitar a saturação de neurônios. Em contrapartida, o MinMaxScaler é estritamente uma \textbf{normalização de intervalo} que comprime os escores para $[0, 1]$ sem remover o deslocamento de bias (a média permanece em torno de $0{,}65$ em nossos dados). As técnicas 1--4 são \textbf{monotônicas} (preservam a ordenação relativa), enquanto a transformação quantílica é \textbf{não-linear} e pode distorcer a hierarquia de ranks entre algoritmos.
+
+\subsection{Métricas de Avaliação}
+
+A avaliação do pipeline é conduzida em duas esferas complementares: no \textbf{nível meta} (capacidade preditiva e de ordenação interna do meta-modelo) e no \textbf{nível base} (ganho real e utilidade prática entregue ao usuário ao seguir a recomendação).
+
+\subsubsection{Métricas em Nível Meta}
+\begin{itemize}
+  \item \textbf{MAE}: erro absoluto médio na escala original do F1-score;
+  \item \textbf{Spearman} ($\rho_s$): correlação entre a ordenação real e a prevista dos $M$ algoritmos base; varia de $-1$ a $+1$;
+  \item \textbf{Acc@1}: proporção de datasets em que o algoritmo previsto em $1^\circ$ lugar coincide com o melhor classificador real.
+\end{itemize}
+
+\subsubsection{Métricas em Nível Base}
+Para determinar o benefício real percebido pelo usuário, seja $\mathbf{y}_i \in \mathbb{R}^M$ o vetor de F1-macro real dos $M$ algoritmos base no dataset de teste $i$, e seja $j^*(i) = \arg\max_{j \in \{1, \dots, M\}} \hat{y}_{i, j}$ o índice do algoritmo recomendado no topo do ranking pelo meta-modelo. Avaliamos:
+\begin{itemize}
+  \item \textbf{F1 Médio em Nível Base ($\overline{P}_{\text{base}}$):} performance real média obtida pelo usuário ao adotar o algoritmo recomendado:
+  \begin{equation}
+    \overline{P}_{\text{base}} = \frac{1}{N} \sum_{i=1}^N y_{i, j^*(i)}
+  \end{equation}
+  \item \textbf{Oráculo Ideal ($\overline{P}_{\text{oracle}}$):} teto teórico de desempenho alcançado se o melhor classificador fosse perfeitamente selecionado para cada dataset:
+  \begin{equation}
+    \overline{P}_{\text{oracle}} = \frac{1}{N} \sum_{i=1}^N \max_{j} y_{i, j}
+  \end{equation}
+  \item \textbf{Perda em Relação ao Oráculo (\textit{Average Regret}):} penalidade média de desempenho sofrida em decorrência de escolhas subótimas:
+  \begin{equation}
+    \overline{\text{Regret}} = \overline{P}_{\text{oracle}} - \overline{P}_{\text{base}} = \frac{1}{N} \sum_{i=1}^N \left( \max_{j} y_{i, j} - y_{i, j^*(i)} \right)
+  \end{equation}
+  \item \textbf{Ganho contra Baselines Estáticas:} comparamos $\overline{P}_{\text{base}}$ contra duas heurísticas triviais que dispensam meta-aprendizagem: a \textit{Single Best} (adotar invariavelmente o classificador com maior média histórica nos dados de treino, Random Forest) e a \textit{Escolha Aleatória}.
+\end{itemize}
+
+% ============================================================
+\section{Metodologia Experimental}
+% ============================================================
+
+\subsection{Conjuntos de Dados}
+
+Foram conduzidos quatro experimentos:
+
+\textbf{Experimento 1 (controlado):} 50 datasets de classificação --- 4 reais da biblioteca \texttt{scikit-learn} (Iris, Wine, Breast Cancer, Digits) e 46 sintéticos gerados com \texttt{make\_classification}, variando $N \in [200, 1000]$ instâncias, $D \in [6, 25]$ atributos, $C \in \{2, 3\}$ classes e Imbalance Ratio $\in [1{,}0, 20{,}0]$.
+
+\textbf{Experimento 2 (realista inicial):} 144 datasets reais do OpenML~\cite{vanschoren2014openml}, selecionados por critérios de qualidade (sem valores ausentes, status ativo, dataset de referência).
+
+\textbf{Experimento 3 (realista expandido):} 200 datasets reais do OpenML de famílias diferentes, garantindo que não haja redundância na distribuição de características das tarefas de classificação. Para isso, o catálogo foi filtrado eliminando duplicatas com base no prefixo do nome dos conjuntos de dados. O perfil das meta-features é apresentado na Tabela~\ref{tab:metadataset_profile}.
+
+\textbf{Experimento 4 (PyMFE):} os mesmos datasets do Experimento~3, agora caracterizados por 78 meta-features extraídas via \texttt{PyMFE}~\cite{pymfe2020} (grupos \texttt{general}, \texttt{statistical}, \texttt{info-theory} e \texttt{clustering}), que expandem as 8 métricas anteriores, com imputação por mediana e recorte de valores superiores a $10^{10}$.
+
+\begin{table}[ht]
+\centering
+\caption{Perfil das meta-features dos Experimentos 3 e 4 (200 datasets reais de famílias diferentes do OpenML).}
+\label{tab:metadataset_profile}
+\small
+\begin{tabular}{lrrrrr}
+\toprule
+\textbf{Meta-feature} & \textbf{Mín.} & \textbf{Q1} & \textbf{Mediana} & \textbf{Q3} & \textbf{Máx.} \\
+\midrule
+\# Instâncias ($N$)   & 21    & 187    & 351,0   & 712,0    & 2.000 \\
+\# Atributos ($D$)    & 2     & 9      & 18,0    & 37,0     & 2.836 \\
+Razão $D/N$          & 0,002 & 0,023  & 0,048   & 0,096    & 7,144 \\
+Imbalance Ratio (IR)  & 1,00  & 1,17   & 2,10    & 5,31     & 534,0 \\
+Entropia              & 0,00  & 0,83   & 0,99    & 1,00     & 3,32  \\
+Pearson médio         & 0,00  & 0,08   & 0,17    & 0,34     & 0,78  \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Meta-features Extraídas}
+
+Na literatura de meta-aprendizagem, descritores derivados de propriedades teóricas e estatísticas dos dados são classificados como características projetadas analiticamente (\textit{handcrafted})~\cite{pymfe2020}, em contraposição a representações latentes aprendidas por modelos de \textit{deep meta-learning}. Nesse sentido, tanto o conjunto inicial quanto o conjunto expandido utilizados neste trabalho pertencem à mesma categoria, diferindo apenas em abrangência: nos Experimentos 1--3, empregamos um subconjunto de 8 meta-features gerais e estatísticas (dos grupos \texttt{general} e \texttt{statistical}), a saber: número de instâncias, número de atributos, razão $D/N$, Imbalance Ratio, entropia de Shannon das classes, correlação média de Pearson (valor absoluto) entre atributos, variância média dos atributos e informação mútua média dos atributos com o alvo.
+
+No Experimento~4, esse espaço é estendido para 78 descritores extraídos via biblioteca \texttt{PyMFE}, que automatiza o cálculo sistemático de quatro grupos --- \texttt{general} (dimensionalidade, proporção de classes), \texttt{statistical} (correlação canônica, assimetria, variância), \texttt{info-theory} (entropia, informação mútua, concentração) e \texttt{clustering} (Calinski-Harabasz, Davies-Bouldin, Dunn) --- englobando as 8 métricas anteriores e adicionando medidas de complexidade da tarefa de classificação.
+
+Em todos os experimentos, as meta-features de entrada $X$ foram padronizadas com StandardScaler ajustado exclusivamente no fold de treino.
+
+\subsection{Algoritmos Base e Meta-alvo}
+
+Cinco algoritmos base foram avaliados em cada dataset via validação cruzada estratificada de 5 folds, com F1-macro como métrica: \textbf{KNN} ($k=5$), \textbf{Decision Tree} (CART), \textbf{Random Forest} (100 estimadores), \textbf{Gaussian Naive Bayes} e \textbf{SVM} (kernel RBF). Todos os hiperparâmetros mantiveram os valores padrão do \texttt{scikit-learn} 1.2.2, com \textit{random state} fixado em 42.
+
+\subsection{Meta-modelos}
+
+Quatro meta-modelos foram avaliados como regressores multi-saída (prevendo o F1 dos 5 algoritmos simultaneamente):
+\begin{itemize}
+  \item \textbf{Ridge} ($\alpha = 1{,}0$): modelo linear;
+  \item \textbf{SVR} (kernel RBF, $C=1{,}0$, $\varepsilon=0{,}1$): modelo não-linear com kernel implícito;
+  \item \textbf{Random Forest Regressor} (100 estimadores): ensemble baseado em árvores;
+  \item \textbf{MLP Regressor} (camadas $[16, 8]$, solver Adam, \texttt{max\_iter=2000}): rede neural.
+\end{itemize}
+
+\subsection{Protocolo de Validação}
+
+Utilizou-se \textbf{validação cruzada de 5 folds no nível meta} (divisão por datasets). Em cada fold, a transformação do meta-alvo foi ajustada nos dados de treino, o meta-modelo foi treinado no alvo transformado e as predições de teste foram invertidas para a escala original antes do cálculo das métricas --- garantindo que não ocorra vazamento de dados (\textit{data leakage}).
+
+\subsection{Testes Estatísticos}
+
+Para verificar a significância das diferenças entre as transformações do meta-alvo, empregamos:
+\begin{itemize}
+  \item \textbf{Teste de Friedman} (global): verifica se ao menos uma técnica difere das demais por meta-modelo, usando os vetores de MAE por dataset ($\alpha = 0{,}05$);
+  \item \textbf{Wilcoxon signed-rank} (post-hoc): compara cada técnica contra o Baseline par a par.
+\end{itemize}
+
+% ============================================================
+\section{Resultados e Discussão}
+% ============================================================
+
+\subsection{Distribuição do Meta-Alvo}
+
+A Tabela~\ref{tab:base_perf} mostra os dados descritivos do meta-alvo nos 200 datasets reais para os cinco algoritmos de classificação que operam no nível base. O desvio padrão alto indica que a variabilidade é grande: existem conjuntos de dados fáceis, onde o F1-score fica perto de 1,0, e outros bem difíceis, com F1-score perto de 0,0. Além de evidenciar a amplitude de variação que torna a transformação e padronização do meta-alvo relevante, a Tabela~\ref{tab:base_perf} estabelece as referências de desempenho do nível base: o Random Forest desponta como o melhor classificador individual fixo (\textit{Single Best}, com média de $0{,}734$), enquanto a média agregada de todos os algoritmos define a baseline de escolha aleatória ($0{,}668$). O teto teórico ótimo (Oráculo) atinge média de $0{,}758$.
+
+\begin{table}[H]
+\centering
+\caption{Distribuição do F1-macro (meta-alvo) para os 5 algoritmos nos 200 datasets reais.}
+\label{tab:base_perf}
+\small
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Algoritmo} & \textbf{Média} & \textbf{Desv.\ Pad.} & \textbf{Mediana} & \textbf{Máx.} \\
+\midrule
+KNN           & 0,654 & 0,197 & 0,643 & 1,000 \\
+Decision Tree & 0,720 & 0,185 & 0,702 & 1,000 \\
+Random Forest & 0,734 & 0,191 & 0,735 & 1,000 \\
+Gaussian NB   & 0,643 & 0,210 & 0,648 & 1,000 \\
+SVM           & 0,589 & 0,239 & 0,555 & 1,000 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Resultados por Experimento}
+
+Para sintetizar as descobertas ao longo da progressão experimental, esta seção reúne as discussões dos quatro cenários testados, evidenciando como o comportamento dos meta-modelos se mantém, ou se acentua, ao passarmos de dados sintéticos controlados para dados reais e heterogêneos.
+
+O Experimento 1 (com 50 datasets controlados) serviu como ponto de partida e corroborou as hipóteses iniciais: os modelos Ridge e Random Forest não sofreram impacto com as transformações lineares, o SVR apresentou ganhos moderados em termos de erro e ordenação, e o MLP falhou completamente na ausência de padronização do meta-alvo.
+
+Os Experimentos 2 e 3 (com 144 e 200 datasets reais descritos pelas 8 meta-features estatísticas) confirmaram esses comportamentos em cenários de dados reais e variados. O colapso do MLP foi ainda mais nítido: no Experimento 2, a correlação de Spearman despencou para 0,034 (indicando nenhuma capacidade de ordenação) e a acurácia de recomendação Acc@1 caiu para 12,5\% (inferior ao acaso de 20\% para 5 opções). Em contrapartida, a padronização via StandardScaler ou RobustScaler recuperou a capacidade preditiva do modelo, com o MAE caindo para a faixa de 0,11 a 0,13 e a correlação de Spearman subindo para valores entre 0,41 e 0,45. A Tabela~\ref{tab:mlp_comparison} na Seção~\ref{subsec:analise_mlp} resume o desempenho do MLP ao longo dos quatro testes.
+
+O Experimento 4 (com os mesmos 200 datasets, descritos pelas 78 meta-features do PyMFE) traz os resultados do pipeline mais abrangente do estudo. O uso desses descritores reduziu substancialmente o erro de previsão de todos os modelos. Por exemplo, o menor MAE obtido pelo SVR caiu de 0,123 (no Experimento 3) para 0,088 (no Experimento 4), e o do Random Forest baixou de 0,114 para 0,085. A Tabela~\ref{tab:results_exp4_summary} resume os resultados desse cenário final, comparando as baselines com as melhores configurações de transformação do alvo.
+
+\begin{table}[ht]
+\centering
+\caption{Resumo dos resultados do Experimento 4 (PyMFE, 200 datasets). Comparativo entre Baseline e técnicas recomendadas de transformação do meta-alvo.}
+\label{tab:results_exp4_summary}
+\small
+\begin{tabular}{llccc}
+\toprule
+\textbf{Meta-Modelo} & \textbf{Técnica} & \textbf{MAE} & \textbf{Spearman} & \textbf{Acc@1} \\
+\midrule
+\multirow{2}{*}{Ridge}
+ & Baseline / Transf.\ Lineares & \textbf{0,1007} & \textbf{0,4966} & \textbf{0,3788} \\
+ & QuantileTransformer         & 0,1152          & 0,4483          & 0,3586          \\
+\midrule
+\multirow{3}{*}{SVR}
+ & Baseline                    & 0,0978          & 0,5213          & 0,3687          \\
+ & StandardScaler (Melhor Rank)& 0,0898          & \textbf{0,5982} & \textbf{0,4949} \\
+ & RobustScaler (Melhor MAE)   & \textbf{0,0884} & 0,5966          & 0,4646          \\
+\midrule
+\multirow{2}{*}{Random Forest}
+ & Baseline                    & 0,0860          & 0,6019          & 0,4747          \\
+ & MinMaxScaler (Melhor Geral) & \textbf{0,0845} & \textbf{0,6157} & \textbf{0,5152} \\
+\midrule
+\multirow{4}{*}{MLP}
+ & Baseline                    & 0,1830          & 0,0802          & 0,2121          \\
+ & StandardScaler (Melhor MAE) & \textbf{0,1165} & 0,3875          & 0,3384          \\
+ & RobustScaler (Melhor Acc@1) & 0,1220          & 0,3542          & \textbf{0,3586} \\
+ & QuantileTransformer (Melhor $\rho_s$) & 0,1294 & \textbf{0,4355} & 0,2980          \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Avaliação do Ganho Prático em Nível Base}
+\label{subsec:nivel_base}
+
+A Tabela~\ref{tab:base_level_eval} sintetiza os resultados empíricos calculados via validação cruzada estratificada de 5 folds sobre os 200 datasets reais do Experimento~4 com descritores PyMFE. Os dados são comparados contra o Oráculo teórico ($0{,}7579$), a heurística fixa \textit{Single Best} (adotar sempre Random Forest, $0{,}7323$) e a \textit{Escolha Aleatória} ($0{,}6668$).
+
+\begin{table}[ht]
+\centering
+\caption{Avaliação em nível base: F1-macro real médio do algoritmo recomendado no Top-1, desvio padrão ($\sigma$), perda média em relação ao Oráculo (\textit{Average Regret}) e ganho frente à melhor baseline fixa (\textit{Single Best}).}
+\label{tab:base_level_eval}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{llcccc}
+\toprule
+\textbf{Meta-Modelo} & \textbf{Pré-processamento de $Y$} & \textbf{F1 Base ($\mu$)} & \textbf{Desv.\ Pad.} & \textbf{Regret ($\mu$)} & \textbf{Ganho vs.\ SB} \\
+\midrule
+\textit{Referência} & \textit{Oráculo Ideal} & \textit{0,7579} & \textit{0,1811} & \textit{0,0000} & \textit{+0,0256} \\
+\textit{Referência} & \textit{Single Best (RF)} & \textit{0,7323} & \textit{0,1904} & \textit{0,0256} & \textit{0,0000} \\
+\textit{Referência} & \textit{Escolha Aleatória} & \textit{0,6668} & \textit{0,2118} & \textit{0,0911} & \textit{-0,0655} \\
+\midrule
+\multirow{2}{*}{Ridge} 
+ & Baseline / Transf.\ Lineares & 0,7214 & 0,1942 & 0,0365 & -0,0109 \\
+ & QuantileTransformer         & 0,7160 & 0,1914 & 0,0419 & -0,0163 \\
+\midrule
+\multirow{5}{*}{SVR} 
+ & Baseline                    & 0,7296 & 0,1852 & 0,0283 & -0,0027 \\
+ & StandardScaler              & 0,7386 & 0,1848 & 0,0193 & +0,0063 \\
+ & MinMaxScaler                & 0,7332 & 0,1846 & 0,0247 & +0,0008 \\
+ & \textbf{RobustScaler}       & \textbf{0,7395} & 0,1841 & \textbf{0,0184} & \textbf{+0,0072} \\
+ & QuantileTransformer         & 0,7351 & 0,1865 & 0,0228 & +0,0028 \\
+\midrule
+\multirow{5}{*}{Random Forest} 
+ & Baseline                    & 0,7372 & 0,1869 & 0,0207 & +0,0049 \\
+ & StandardScaler              & 0,7362 & 0,1868 & 0,0217 & +0,0039 \\
+ & \textbf{MinMaxScaler}       & \textbf{0,7381} & 0,1854 & \textbf{0,0198} & \textbf{+0,0058} \\
+ & RobustScaler                & 0,7372 & 0,1870 & 0,0207 & +0,0049 \\
+ & QuantileTransformer         & 0,7364 & 0,1850 & 0,0215 & +0,0041 \\
+\midrule
+\multirow{5}{*}{MLP} 
+ & Baseline                    & 0,6576 & 0,2190 & 0,1003 & -0,0747 \\
+ & MinMaxScaler                & 0,6621 & 0,2131 & 0,0957 & -0,0702 \\
+ & \textbf{StandardScaler}     & \textbf{0,7062} & 0,2134 & \textbf{0,0517} & \textbf{-0,0261} \\
+ & RobustScaler                & 0,7028 & 0,2121 & 0,0551 & -0,0295 \\
+ & QuantileTransformer         & 0,7039 & 0,2044 & 0,0540 & -0,0285 \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+A análise prática em nível base revela achados fundamentais sobre o ganho entregue pelo meta-aprendizado:
+
+\begin{enumerate}
+  \item \textbf{A padronização viabiliza o SVR na prática:} Sem transformação do alvo (Baseline), o SVR atinge $F1 = 0{,}7296$, sendo inferior à heurística trivial de simplesmente adotar o Random Forest em todos os casos ($0{,}7323$). Com a \textbf{padronização robusta (RobustScaler)}, o SVR salta para \textbf{$0{,}7395$} (o maior F1 médio de todo o estudo), superando a heurística estática e reduzindo o \textit{Average Regret} para apenas $0{,}0184$ (ficando a menos de 2 pontos percentuais do Oráculo ideal).
+  \item \textbf{A severidade prática do colapso do MLP:} Sem padronização do meta-alvo, o MLP atinge $F1 = 0{,}6576$, operando \textbf{abaixo da escolha puramente aleatória} ($0{,}6668$) e impondo uma perda de mais de $10\%$ de F1 frente ao Oráculo ($\text{Regret} = 0{,}1003$). O uso de padronização com média ou mediana nula (StandardScaler e RobustScaler) recupera expressivamente o modelo para $0{,}7062$, cortando o regret pela metade.
+  \item \textbf{Resiliência do Random Forest:} O ensemble baseado em árvores confirma sua robustez natural, mantendo desempenho em torno de $0{,}736$ a $0{,}738$ sob todas as transformações e superando a baseline estática em qualquer configuração.
+  \item \textbf{Degradação pelo QuantileTransformer:} A distorção não-linear introduzida pelo QuantileTransformer aumentou a perda do Ridge frente ao Oráculo de $0{,}0365$ para $0{,}0419$.
+\end{enumerate}
+
+\subsection{Testes de Hipóteses}
+
+\textbf{Teste de Friedman.} Este teste analisa se há alguma diferença estatisticamente significativa no erro absoluto (MAE) dos modelos ao variarmos as técnicas de transformação do meta-alvo (os resultados estão na Tabela~\ref{tab:friedman_all}). Nos Experimentos 2 e 3, apenas o MLP mostrou diferenças significativas, o que indica que os modelos Ridge, SVR e Random Forest conseguem lidar bem com os dados brutos. No entanto, no Experimento 4 (com PyMFE), a maior quantidade de características deu mais precisão para a análise: o Ridge e o SVR também passaram a apresentar diferenças estatísticas significativas. Por outro lado, o Random Forest continuou muito estável e não sofreu impacto estatístico sob nenhuma técnica.
+
+\begin{table}[H]
+\centering
+\caption{Resultados do teste de Friedman por meta-modelo nos Experimentos~2, 3 e 4.}
+\label{tab:friedman_all}
+\small
+\begin{tabular}{llccl}
+\toprule
+\textbf{Experimento} & \textbf{Meta-Modelo} & \textbf{$\chi^2$} & \textbf{$p$-value} & \textbf{Decisão} \\
+\midrule
+\multirow{4}{*}{Exp.~2 (144 ds)}
+ & Ridge        & 3,04            & 0,551                                    & Não significativo \\
+ & SVR          & 8,37            & 0,079                                    & Não significativo \\
+ & Random Forest & 5,41           & 0,248                                    & Não significativo \\
+ & MLP          & \textbf{148,72} & $\mathbf{3{,}8 \times 10^{-31}}$        & \textbf{Significativo} \\
+\midrule
+\multirow{4}{*}{Exp.~3 (200 ds)}
+ & Ridge        & 1,61            & 0,807                                    & Não significativo \\
+ & SVR          & 3,41            & 0,491                                    & Não significativo \\
+ & Random Forest & 0,34           & 0,987                                    & Não significativo \\
+ & MLP          & \textbf{110,71} & $\mathbf{5{,}1 \times 10^{-23}}$        & \textbf{Significativo} \\
+\midrule
+\multirow{4}{*}{Exp.~4 (PyMFE)}
+ & Ridge        & \textbf{22,38}  & $\mathbf{1{,}7 \times 10^{-4}}$         & \textbf{Significativo} \\
+ & SVR          & \textbf{53,92}  & $\mathbf{5{,}5 \times 10^{-11}}$        & \textbf{Significativo} \\
+ & Random Forest & 4,58           & 0,333                                    & Não significativo \\
+ & MLP          & \textbf{278,02} & $\mathbf{5{,}9 \times 10^{-59}}$        & \textbf{Significativo} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Wilcoxon post-hoc para o MLP.} Os testes de comparação par a par (Wilcoxon) confirmaram que a padronização do meta-alvo é significativamente superior a deixá-lo sem tratamento nos três experimentos com dados reais ($p < 10^{-4}$). O StandardScaler e o RobustScaler diminuíram o erro absoluto em até 36\% e ajudaram o modelo a ordenar melhor as opções (a correlação de Spearman subiu de valores quase nulos para mais de 0,40). Por exemplo, no Experimento 4, o StandardScaler reduziu o MAE do MLP de 0,183 para 0,117 e elevou a correlação de Spearman de 0,080 para 0,388.
+
+\subsection{Análise por Meta-Modelo}
+
+\subsubsection{Ridge Regression: Invariância a Transformações Lineares}
+
+O modelo Ridge apresentou resultados \textit{idênticos} para as transformações lineares (StandardScaler, MinMaxScaler e RobustScaler) em todos os quatro experimentos. Essa invariância decorre de uma propriedade matemática da regressão linear regularizada: quando se aplica uma transformação linear $\tilde{y} = a \cdot y + b$, o Ridge apenas reajusta os coeficientes para compensar a escala, e a inversão na saída recupera exatamente o resultado original. A única exceção é o QuantileTransformer: por aplicar um mapeamento não-linear, distorce a ordem dos dados no espaço-alvo, de modo que a inversão não recupera a escala original, o que explica a queda na acurácia de recomendação (Acc@1) observada em todos os cenários.
+
+\subsubsection{SVR: A Transformação do Alvo Auxilia Mais na Recomendação do que na Redução do Erro}
+
+Para o SVR, a transformação do meta-alvo faz uma grande diferença na qualidade das recomendações (Acc@1 e correlação de Spearman) em todos os cenários, embora o impacto no erro absoluto (MAE) varie de acordo com o experimento. Em dados reais sem o PyMFE (Experimentos 2 e 3), o erro mudou muito pouco, mas a capacidade de recomendar o melhor algoritmo aumentou significativamente: no Experimento 2, o Acc@1 subiu de 0,486 para 0,563 com RobustScaler, e no Experimento 3 foi de 0,429 para 0,470. Já no Experimento 4, com as meta-features mais completas do PyMFE, o modelo melhorou em todas as frentes: o MAE caiu cerca de 10\% (de 0,098 para 0,088 com RobustScaler) e a acurácia de recomendação foi de 0,369 para 0,495 com StandardScaler. 
+
+\subsubsection{Random Forest: Robustez a Transformações no Meta-Alvo}
+
+O Random Forest confirmou ser o modelo mais resistente a mudanças na distribuição do meta-alvo. Em todos os experimentos, a variação de MAE entre as técnicas lineares foi minúscula (menor que 0,007), e os testes estatísticos não indicaram diferença significativa global. Essa estabilidade acontece pela própria natureza dos modelos de árvore, que tomam decisões de divisão baseadas na ordenação relativa (ranks) dos dados, mantida por qualquer transformação linear. A única técnica que atrapalha o Random Forest é o QuantileTransformer: por alterar a ordem relativa dos dados, ele prejudicou a capacidade de recomendação (Acc@1) em todos os cenários testados.
+
+\subsubsection{MLP: A Padronização do Meta-Alvo é Indispensável}
+\label{subsec:analise_mlp}
+
+O resultado mais marcante é o comportamento do MLP. Sem a padronização do meta-alvo $Y$ (ou seja, quando treinado nos dados brutos ou sob normalização Min-Max), a rede neural falha em aprender qualquer padrão útil nos dados reais. A correlação de Spearman cai para patamares quase nulos (0,034 no Exp. 2, 0,167 no Exp. 3 e 0,080 no Exp. 4), a acurácia de recomendação fica em torno ou abaixo do acaso de 20\% (chegando a apenas 12,5\% no Exp. 2) e o desempenho em nível base cai para $0{,}658$ (pior que escolha aleatória). A Tabela~\ref{tab:mlp_comparison} detalha esse colapso nos quatro cenários:
+
+\begin{table}[ht]
+\centering
+\caption{Comportamento do MLP nos quatro experimentos: Baseline versus melhor técnica de padronização.}
+\label{tab:mlp_comparison}
+\small
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Experimento} & \textbf{Transformação} & \textbf{MAE} & \textbf{Spearman} & \textbf{Acc@1} \\
+\midrule
+\multirow{2}{*}{Exp.\ 1 (sintético, 50 ds)} & Baseline     & 0,147 & 0,274 & 0,320 \\
+                                             & RobustScaler & \textbf{0,071} & \textbf{0,588} & \textbf{0,440} \\
+\midrule
+\multirow{2}{*}{Exp.\ 2 (real, 144 ds)}     & Baseline     & 0,179 & 0,034 & 0,125 \\
+                                             & RobustScaler & \textbf{0,118} & \textbf{0,453} & \textbf{0,438} \\
+\midrule
+\multirow{3}{*}{Exp.\ 3 (real, 200 ds)}     & Baseline     & 0,174 & 0,167 & 0,207 \\
+                                             & StandardScaler & \textbf{0,131} & \textbf{0,431} & 0,374 \\
+                                             & RobustScaler & 0,135 & 0,413 & \textbf{0,399} \\
+\midrule
+\multirow{3}{*}{Exp.\ 4 (PyMFE, 200 ds)}    & Baseline     & 0,183 & 0,080 & 0,212 \\
+                                             & QuantileTransformer & \textbf{0,129} & \textbf{0,436} & 0,298 \\
+                                             & RobustScaler & 0,122 & 0,354 & \textbf{0,359} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Esse colapso é pronunciado em dados reais porque os escores de F1 de todos os algoritmos base compartilham uma média positiva elevada ($\approx 0{,}65$ a $0{,}75$), com alta variabilidade entre datasets. Quando o meta-alvo não passa por padronização com média zero ($\mu=0$ ou mediana nula), a inicialização dos pesos da rede neural (que assume saídas centradas em zero) faz com que a função de perda MSE fique dominada pelo ajuste desse deslocamento constante de bias. A rede gasta sua capacidade representacional tentando ajustar a média global e perde a sensibilidade aos gradientes necessários para distinguir a ordenação fina entre os 5 algoritmos base. Técnicas de padronização como StandardScaler e RobustScaler removem esse bias e centralizam a distribuição, permitindo que a retropropagação ajuste os pesos com base nas diferenças relativas de desempenho.
+
+O MinMaxScaler não soluciona essa instabilidade do MLP porque realiza apenas uma compressão linear para $[0, 1]$, preservando a média positiva deslocada e a assimetria da distribuição original (o que explica o porquê de seus resultados serem estatisticamente indistinguíveis do Baseline). Por outro lado, no Experimento 4 (com 78 descritores do PyMFE), observa-se um comportamento singular: a transformação quantílica (QuantileTransformer) proporcionou a maior correlação de Spearman do MLP (0,436). Isso evidencia que, em espaços com descritores mais densos e estruturados, a normalização quantílica para distribuição gaussiana auxilia a rede neural a capturar a hierarquia relativa entre os algoritmos base.
+
+\subsection{O Paradoxo do QuantileTransformer}
+
+Embora o QuantileTransformer possa ajudar a reduzir o erro absoluto (MAE) ao transformar os dados em uma distribuição normal, ele costuma piorar a capacidade de recomendação (Acc@1) dos modelos. Isso acontece porque a sua transformação não-linear muda as distâncias relativas entre os scores de F1 dos algoritmos. Por exemplo, se dois algoritmos têm desempenhos muito parecidos (como 0,70 e 0,71), o QuantileTransformer pode afastar bastante os seus valores transformados, enquanto dois desempenhos distantes (como 0,50 e 0,70) podem ficar mais próximos. Essa distorção dificulta que a inversão da transformação recupere a ordem exata das previsões.
+
+Se a intenção for de fato \textbf{recomendar o melhor algoritmo}, o QuantileTransformer deve ser evitado na maioria dos modelos devido à sua tendência de degradar o ranqueamento. Em teoria, a transformação quantílica é projetada para suavizar distribuições contínuas fortemente assimétricas ou com caudas longas; contudo, para a tarefa de recomendação de algoritmos, esse mapeamento não-linear altera as distâncias relativas entre os desempenhos e prejudica a preservação da ordem original. A única exceção a essa perda generalizada de ordenação ocorreu com o MLP no Experimento 4 (com PyMFE), no qual a maior riqueza das meta-features parece ter ajudado a compensar as distorções introduzidas pela transformação quantílica.
+
+\clearpage
+\subsection{Consistência entre os Experimentos}
+
+A Tabela~\ref{tab:consistency} sintetiza a consistência dos achados ao longo dos quatro experimentos, mostrando que os padrões identificados com dados controlados são robustos a cenários reais heterogêneos.
+
+\begin{table}[H]
+\centering
+\caption{Consistência dos achados ao longo dos quatro experimentos.}
+\label{tab:consistency}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Fenômeno observado} & \textbf{Exp.\ 1} & \textbf{Exp.\ 2} & \textbf{Exp.\ 3} & \textbf{Exp.\ 4} & \textbf{Avaliação} \\
+\midrule
+Ridge invariante a transf.\ lineares        & \checkmark & \checkmark & \checkmark & \checkmark & Alta \\
+Ridge degradado pelo QT (Acc@1)            & \checkmark & \checkmark & \checkmark & \checkmark & Alta \\
+MLP: colapso sem padronização do meta-alvo & Parcial    & Total      & Total      & Total      & Reforçada \\
+MLP: ganho no MAE com SS/RS                & 51,8\%     & 34,3\%     & 24,9\%     & 36,3\%     & Alta \\
+MLP: MinMaxScaler sem ganho                & \checkmark & \checkmark & \checkmark & \checkmark & Alta \\
+RF invariante a transf.\ lineares            & \checkmark & \checkmark & \checkmark & \checkmark & Alta \\
+QT degrada rankings em todos os modelos     & \checkmark & \checkmark & \checkmark & \checkmark & Alta \\
+SVR beneficiado por padronização         & MAE        & Spearman   & Spearman   & Todos      & Alta \\
+\bottomrule
+\end{tabular}
+}%
+\end{table}
+
+\section{Conclusão}
+% ============================================================
+
+Este estudo analisou como as técnicas de transformação e padronização do meta-alvo influenciam o desempenho de sistemas de meta-aprendizagem na tarefa de selecionar algoritmos. Para isso, realizaram-se quatro experimentos: 50 datasets em ambiente controlado, 144 e 200 datasets reais de famílias diferentes descritos por 8 meta-features estatísticas e, finalmente, os mesmos 200 datasets descritos por 78 descritores extraídos via PyMFE.
+
+Os resultados deixam claro que \textbf{a sensibilidade à transformação do meta-alvo depende crucialmente da arquitetura do meta-modelo} e impacta diretamente a utilidade prática entregue ao usuário em nível base:
+
+\begin{itemize}
+  \item \textbf{Ridge}: é imune a transformações lineares no alvo em razão de sua formulação matemática, mas sofre degradação no ranqueamento e no regret de nível base com transformações não-lineares.
+  \item \textbf{SVR}: melhora expressivamente a qualidade das recomendações (acurácia Acc@1 e Spearman) ao usar padronização (StandardScaler ou RobustScaler). Na avaliação em nível base, o SVR com RobustScaler atinge o melhor desempenho médio ($F1 = 0{,}740$) e o menor \textit{regret} ($0{,}018$) de todo o estudo, superando a melhor baseline estática (Random Forest fixo).
+  \item \textbf{Random Forest}: confirmou ser o meta-modelo mais robusto e seguro para uso geral, mantendo alta performance em nível base ($F1 \approx 0{,}738$) invariante a mudanças de escala no alvo.
+  \item \textbf{MLP}: a padronização do meta-alvo com média ou mediana nula (StandardScaler ou RobustScaler) é indispensável. Sem ela, a rede neural sofre colapso completo no nível base, obtendo $F1 = 0{,}658$ (inferior ao acaso).
+\end{itemize}
+
+O \textbf{QuantileTransformer deve ser evitado se o objetivo principal for otimizar a recomendação de algoritmos}, pois distorce a hierarquia de ranks e amplia o \textit{regret}.
+
+A transição das 8 meta-features iniciais para os 78 descritores extraídos via PyMFE reduziu drasticamente o erro de predição em todos os meta-modelos.
+
+Por fim, confirma-se a hipótese H3 de que não existe uma técnica de transformação universalmente perfeita para o meta-alvo. Como regra prática orientada à recomendação de algoritmos e minimização do \textit{regret} em nível base, recomenda-se a padronização robusta (\textbf{RobustScaler}), por aliar remoção de bias com mediana nula, estabilidade numérica frente a outliers e o menor arrependimento prático frente ao Oráculo ideal.
+
+\bibliographystyle{sbc}
+\bibliography{relatorio-sbc}
+
+\end{document}
