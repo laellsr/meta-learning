@@ -45,7 +45,7 @@
 \maketitle
 
 \begin{abstract}
-Meta-learning systems for algorithm selection often rely on target performance metrics to train predictive models, yet the impact of target feature scaling remains understudied. This study investigates how target transformations affect regression-based meta-models under different meta-feature representations. Evaluating five scalers across four meta-models and 12,000 dataset--algorithm configurations, we demonstrate that unscaled meta-targets severely degrade meta-model accuracy. Non-linear transformations, particularly QuantileTransformer, consistently optimize rank correlation and predictive accuracy for distance- and tree-based models. However, under rich meta-feature spaces, Multi-Layer Perceptrons exhibit a severe vulnerability to extreme density distortions introduced by QuantileTransformer, resulting in catastrophic prediction failures. Furthermore, tree-based models like Random Forests demonstrate robust invariance to monotonic target transformations under sparse representations. Our findings show that proper target scaling dramatically reduces meta-prediction error and highlight that scaling strategies must be explicitly co-designed with both the chosen meta-model architecture and feature space dimensionality. No single scaling technique universally dominates.
+Meta-learning systems for algorithm selection train a meta-model to predict the performance of base algorithms (the meta-target) from dataset characteristics (meta-features). While meta-features are routinely scaled, the effect of scaling the meta-target remains largely unexplored. We evaluate four regression meta-models (Ridge, SVR, Random Forest, and MLP) combined with five meta-target scaling strategies across four experimental scenarios, ranging from 50 controlled datasets to 198 real-world OpenML datasets described by either 8 statistical or 78 PyMFE meta-features, and assess both meta-level predictive performance and base-level recommendation quality. Scaling sensitivity depends on meta-model architecture. Without zero-centered standardization, MLP recommendations become statistically indistinguishable from random choice; StandardScaler and RobustScaler reduce its mean absolute error by 51.8\% on controlled data and by up to 36.3\% on real-world data. RobustScaler reduces SVR error by 9.6\% and yields the highest base-level macro-F1 of the study, statistically tying the best static heuristic. Ridge and Random Forest are invariant to linear scalers, whereas the non-linear QuantileTransformer degrades ranking ability for most meta-models. No single scaling technique universally dominates.
 \end{abstract}
 
 % ============================================================
@@ -54,20 +54,26 @@ Meta-learning systems for algorithm selection often rely on target performance m
 
 Machine learning (ML) algorithm selection is one of the most resource-intensive stages in building intelligent systems. Rather than exhaustively evaluating every candidate algorithm on a new dataset---a computationally prohibitive approach---\textit{meta-learning} uses historical evaluations to train a meta-model that maps dataset characteristics (\textit{meta-features}) to base algorithm performances (\textit{meta-target}), enabling the recommendation of the most suitable algorithm for unseen tasks~\cite{vanschoren2018meta}.
 
-While input \textit{meta-features} typically undergo rigorous preprocessing and scaling, the performance scores forming the \textit{meta-target} are typically used without transformation. Nonetheless, metrics such as macro-F1 vary in scale and distribution across tasks, which can hinder meta-models sensitive to these discrepancies. The study by \cite{amorim2022choice} demonstrated at the base level that \textit{``the choice of scaling technique matters for classification performance''}---we investigate whether this effect holds at the meta-level.
+While input \textit{meta-features} typically undergo rigorous preprocessing and scaling, the performance scores forming the \textit{meta-target} are typically used in their raw form. Nonetheless, metrics such as macro-F1 vary in scale and distribution across tasks, which can hinder meta-models sensitive to these discrepancies. The study by \cite{amorim2022choice} demonstrated at the base level that \textit{``the choice of scaling technique matters for classification performance''}---we investigate whether this effect holds for regression at the meta-level when the targets are scaled.
 
-\textbf{Problem Formulation:} Does the scaling and transformation of the meta-target in meta-learning systems for algorithm selection yield meaningful performance differences? Is there a universal scaling recommendation suitable for any meta-model architecture?
+\textbf{Problem Formulation:} Does the scaling of the meta-target in meta-learning systems for algorithm selection yield meaningful performance differences? Is there a universal scaling recommendation suitable for any meta-model architecture?
 
-\textbf{Hypotheses:} (H1) Meta-models sensitive to target scaling will display statistically significant performance variations across techniques. (H2) Tree-based meta-models will remain invariant to linear target transformations. (H3) No single target preprocessing technique will universally dominate across all meta-models.
+\textbf{Hypotheses:} (H1) Meta-models sensitive to target scaling will display statistically significant performance variations across techniques. (H2) Tree-based meta-models will remain invariant to linear target transformations. (H3) No single target scaling technique will universally dominate across all meta-models.
 
 \textbf{Main Contributions:}
 \begin{itemize}
-  \item The first systematic investigation into the impact of \textit{meta-target} scaling and transformation (as opposed to meta-feature scaling) in meta-learning systems;
-  \item Demonstration that MLP severely collapses without meta-target standardization of $Y$, yielding recommendations statistically indistinguishable from random guessing on real-world datasets even when input meta-features $X$ are standardized---a failure mode resolved by eliminating the target mean bias via StandardScaler or RobustScaler;
-  \item Base-level evaluation via paired Wilcoxon tests with Holm--Bonferroni correction, showing that target preprocessing lifts SVR from a losing trend against the Single Best heuristic to a statistical tie, cuts regret to $0.0184$, and recovers MLP from chance-level recommendations;
-  \item Identification of QuantileTransformer as detrimental to ranking ability across the majority of meta-models (with MLP under rich feature spaces as a notable exception);
-  \item Validation across four progressive scenarios: controlled synthetic benchmarks, 144 and 198 real-world OpenML datasets characterized by 8 statistical meta-features, and the same datasets expanded to 78 descriptors via the PyMFE library;
-  \item Evidence that richer meta-feature sets reduce prediction error across all meta-models when combined with appropriate target preprocessing.
+  \item The first systematic investigation into the impact of \textit{meta-target} scaling (as opposed to meta-feature scaling) in regression-based meta-learning systems for algorithm selection;
+  \item A dual-level evaluation framework that connects meta-level predictive performance and ranking fidelity to base-level practical utility, measuring end-user macro-F1 gains and regret against an Ideal Oracle and static heuristics;
+  \item A progressive empirical benchmark across four experimental scenarios---spanning controlled synthetic tasks and up to 198 real-world OpenML datasets under both basic statistical and expanded PyMFE meta-feature representations---evaluating four meta-model families across five target scaling strategies;
+  \item A mechanistic analysis and actionable design guidelines explaining how meta-model architectural properties interact with linear and non-linear target scaling.
+\end{itemize}
+
+\textbf{Main Findings:}
+\begin{itemize}
+  \item MLP collapses without zero-centered meta-target standardization: on real-world data its recommendations become statistically indistinguishable from random choice, even though the input meta-features $X$ are standardized---a failure resolved by StandardScaler or RobustScaler;
+  \item At the base level, RobustScaler lifts SVR from a losing trend against the Single Best heuristic to a statistical tie, yielding the highest average macro-F1 ($0.7395$) and the lowest regret ($0.0184$) of the study;
+  \item Ridge and Random Forest are invariant to linear target scalers, whereas the non-linear QuantileTransformer degrades ranking ability for most meta-models, with MLP under the richer PyMFE meta-feature space as the only exception;
+  \item Richer meta-feature sets reduce prediction error across all meta-models when combined with appropriate target scaling.
 \end{itemize}
 
 % ============================================================
@@ -78,9 +84,9 @@ While input \textit{meta-features} typically undergo rigorous preprocessing and 
 
 Let $\mathcal{D} = \{d_1, \dots, d_N\}$ denote a benchmark repository of $N$ classification datasets. For each dataset $d_i$, we extract a $D$-dimensional meta-feature vector $\mathbf{x}_i \in \mathbb{R}^D$, forming the meta-feature matrix $X \in \mathbb{R}^{N \times D}$. We evaluate a portfolio of $M$ base classification algorithms $\mathcal{A} = \{a_1, \dots, a_M\}$ on each dataset, yielding a performance vector $\mathbf{y}_i \in \mathbb{R}^M$ (e.g., the macro-F1 score of each algorithm $a_j$ on $d_i$) and the resulting meta-target matrix $Y \in \mathbb{R}^{N \times M}$. The objective is to induce a mapping $f$ that predicts $\hat{\mathbf{y}}_i \approx \mathbf{y}_i$ given $\mathbf{x}_i$, subsequently recommending the base algorithm with the highest estimated performance for an unseen dataset.
 
-\subsection{Meta-Learning Pipeline with Meta-Target Transformation}
+\subsection{Meta-Learning Pipeline with Meta-Target Scaling}
 
-The core contribution of this work lies in examining the effect of a transformation $S: \mathbb{R}^{N \times M} \rightarrow \mathbb{R}^{N \times M}$ applied column-wise to $Y$ \textit{prior} to meta-model training. Figure~\ref{fig:pipeline} illustrates the proposed pipeline.
+The core contribution of this work lies in examining the effect of a scaling function $S: \mathbb{R}^{N \times M} \rightarrow \mathbb{R}^{N \times M}$ applied column-wise to $Y$ (yielding $Y_s = S(Y)$) \textit{prior} to meta-model training. Figure~\ref{fig:pipeline} illustrates the proposed pipeline.
 
 \begin{figure}[ht]
 \centering
@@ -131,26 +137,26 @@ The core contribution of this work lies in examining the effect of a transformat
         label={[font=\scriptsize\itshape]below:Testing / Inference Phase}] {};
 \end{scope}
 \end{tikzpicture}
-\caption{Meta-learning pipeline incorporating meta-target transformation. The preprocessor $S$ is fitted strictly on the training partition, preventing data leakage. Post-prediction inversion $S^{-1}$ ensures that evaluation metrics remain on the original macro-F1 scale.}
+\caption{Meta-learning pipeline incorporating meta-target scaling. The scaler $S$ is fitted strictly on the training partition, preventing data leakage. Post-prediction inversion $S^{-1}$ ensures that evaluation metrics remain on the original macro-F1 scale.}
 \label{fig:pipeline}
 \end{figure}
 
-\subsection{Meta-Target Transformation and Scaling Techniques}
+\subsection{Meta-Target Scaling Techniques}
 
-Five target preprocessing strategies applied column-wise to the meta-target matrix $Y$ represent distinct data transformation paradigms:
+Five target scaling strategies applied column-wise to the meta-target matrix $Y$ represent distinct scaling paradigms:
 \begin{enumerate}
-  \item \textbf{Baseline} (Raw data): $\tilde{y} = y$. Untransformed control group retaining the original performance values (macro-F1);
-  \item \textbf{StandardScaler} (\textbf{Z-score Standardization}): $\tilde{y} = (y - \mu) / \sigma$. Centers data around zero mean ($\mu=0$) with unit variance ($\sigma=1$), aiding gradient descent stability;
-  \item \textbf{MinMaxScaler} (\textbf{Min-Max Normalization}): $\tilde{y} = (y - y_{\min}) / (y_{\max} - y_{\min})$. Linearly bounds values to the closed interval $[0, 1]$, preserving the original distributional shape and relative distances, but retaining a positive offset mean;
-  \item \textbf{RobustScaler} (\textbf{Robust Standardization}): $\tilde{y} = (y - \text{median}) / \text{IQR}$. Employs outlier-robust statistics (zero median and scaling via the interquartile range $Q_3 - Q_1$), preventing extreme performance values from skewing the distribution;
-  \item \textbf{QuantileTransformer} (\textbf{Quantile Transformation}): $\tilde{y} = \Phi^{-1}\!\left( \frac{\text{rank}(y)}{n+1} \right)$. Maps data non-linearly to a standard normal distribution via the empirical quantile function, mitigating extreme skewness but distorting relative inter-rank distances.
+  \item \textbf{Baseline} (Raw data): $y_s = y$. Unscaled control group retaining the original performance values (macro-F1);
+  \item \textbf{StandardScaler} (\textbf{Z-score Standardization}): $y_s = (y - \mu) / \sigma$. Centers data around zero mean ($\mu=0$) with unit variance ($\sigma=1$), aiding gradient descent stability;
+  \item \textbf{MinMaxScaler} (\textbf{Min-Max Normalization}): $y_s = (y - y_{\min}) / (y_{\max} - y_{\min})$. Linearly bounds values to the closed interval $[0, 1]$, preserving the original distributional shape and relative distances, but retaining a positive offset mean;
+  \item \textbf{RobustScaler} (\textbf{Robust Standardization}): $y_s = (y - \text{median}) / \text{IQR}$. Employs outlier-robust statistics (zero median and scaling via the interquartile range $Q_3 - Q_1$), preventing extreme performance values from skewing the distribution;
+  \item \textbf{QuantileTransformer} (\textbf{Quantile Transformation}): $y_s = \Phi^{-1}\!\left( \frac{\text{rank}(y)}{n+1} \right)$. Maps data non-linearly to a standard normal distribution via the empirical quantile function, mitigating extreme skewness but distorting relative inter-rank distances.
 \end{enumerate}
 
-A key distinction separates these families: StandardScaler and RobustScaler perform \textbf{standardization} (centering with zero mean or median followed by dispersion scaling), a property crucial for stabilizing gradient backpropagation and preventing neuron saturation in neural networks. In contrast, MinMaxScaler is a \textbf{range normalization} that compresses scores into $[0, 1]$ without removing the non-zero bias offset (the mean remains around $0.65$ in our benchmark). Techniques 1--4 are strictly \textbf{monotonic} (preserving relative order), whereas quantile transformation is \textbf{non-linear} and may alter the ranking hierarchy among algorithms.
+A key distinction separates these families: StandardScaler and RobustScaler perform \textbf{standardization} (centering with zero mean or median followed by dispersion scaling), a property crucial for stabilizing gradient backpropagation and preventing neuron saturation in neural networks~\cite{lecun2012efficient,glorot2010understanding}. In contrast, MinMaxScaler is a \textbf{range normalization} that compresses scores into $[0, 1]$ without removing the non-zero bias offset (the mean remains around $0.65$ in our benchmark). Techniques 1--4 are strictly \textbf{monotonic} (preserving relative order), whereas quantile transformation is \textbf{non-linear} and may alter the ranking hierarchy among algorithms.
 
 \subsection{Evaluation Metrics}
 
-Pipeline evaluation is conducted across two complementary dimensions: the \textbf{meta-level} (meta-model predictive precision and ranking fidelity) and the \textbf{base-level} (practical utility and empirical performance delivered to the end-user).
+Pipeline evaluation is conducted across two complementary dimensions: the \textbf{meta-level} (meta-model predictive performance and ranking fidelity) and the \textbf{base-level} (practical utility and empirical performance delivered to the end-user).
 
 \subsubsection{Meta-Level Metrics}
 \begin{itemize}
@@ -236,14 +242,14 @@ Four distinct meta-models were evaluated as multi-output regressors (predicting 
 
 \subsection{Validation Protocol}
 
-We adopted a \textbf{5-fold cross-validation scheme at the meta-level} (partitioning by datasets). Within each split, the target transformation was fitted exclusively on the training datasets, the meta-model was trained on the transformed targets, and test predictions were inverted back to the original scale before computing evaluation metrics, avoiding data leakage.
+We adopted a \textbf{5-fold cross-validation scheme at the meta-level} (partitioning by datasets). Within each split, the target scaler was fitted exclusively on the training datasets, the meta-model was trained on the scaled targets, and test predictions were inverted back to the original scale before computing evaluation metrics, avoiding data leakage.
 
 \subsection{Statistical Tests}
 
-To assess the statistical significance of performance differences across target transformations, we employed:
+To assess the statistical significance of performance differences across target scaling techniques, we employed:
 \begin{itemize}
-  \item \textbf{Friedman Test} (omnibus): Evaluates whether at least one transformation significantly differs from the others per meta-model, based on per-dataset MAE vectors ($\alpha = 0.05$);
-  \item \textbf{Wilcoxon Signed-Rank Test} (post-hoc): Pairwise comparison of each transformation against the untransformed Baseline.
+  \item \textbf{Friedman Test} (omnibus): Evaluates whether at least one scaling technique significantly differs from the others per meta-model, based on per-dataset MAE vectors ($\alpha = 0.05$);
+  \item \textbf{Wilcoxon Signed-Rank Test} (post-hoc): Pairwise comparison of each scaling technique against the unscaled Baseline.
 \end{itemize}
 
 At the base level, recommendation quality was further assessed through paired Wilcoxon signed-rank tests over the per-dataset macro-F1 vectors of the recommended algorithm ($N = 198$). Comparisons were pre-assigned to two families, each corrected independently via the Holm--Bonferroni step-down procedure ($m = 6$): a \textbf{confirmatory} family, comprising within-model contrasts that isolate the effect of meta-target scaling, and an \textbf{exploratory} family, contrasting meta-models against the static heuristics. Zero differences were discarded following the standard Wilcoxon convention, so the effective sample size $n_{\text{eff}}$ counts only datasets on which the two strategies recommended different algorithms. Effect sizes are reported as the matched-pairs rank-biserial correlation $r_{rb}$.
@@ -254,7 +260,7 @@ At the base level, recommendation quality was further assessed through paired Wi
 
 \subsection{Meta-Target Distribution}
 
-Table~\ref{tab:base_perf} presents descriptive statistics of the meta-target across the 198 real-world datasets for the five base classification algorithms. The high standard deviations indicate substantial performance dispersion: benchmarks range from trivial tasks (macro-F1 near 1.0) to challenging ones (macro-F1 near 0.0). Beyond establishing the dispersion that motivates target preprocessing, Table~\ref{tab:base_perf} delineates base-level reference baselines: Random Forest emerges as the optimal static choice (\textit{Single Best}, with an average macro-F1 of $0.732$), while the aggregate mean across all algorithms defines the random selection baseline ($0.667$). The theoretical performance ceiling (Ideal Oracle) reaches an average macro-F1 of $0.758$.
+Table~\ref{tab:base_perf} presents descriptive statistics of the meta-target across the 198 real-world datasets for the five base classification algorithms. The high standard deviations indicate substantial performance dispersion: benchmarks range from trivial tasks (macro-F1 near 1.0) to challenging ones (macro-F1 near 0.0). Beyond establishing the dispersion that motivates target scaling, Table~\ref{tab:base_perf} delineates base-level reference baselines: Random Forest emerges as the optimal static choice (\textit{Single Best}, with an average macro-F1 of $0.732$), while the aggregate mean across all algorithms defines the random selection baseline ($0.667$). The theoretical performance ceiling (Ideal Oracle) reaches an average macro-F1 of $0.758$.
 
 \begin{table}[ht]
 \centering
@@ -282,11 +288,11 @@ Experiment 1 (50 controlled datasets) confirmed initial hypotheses: Ridge and Ra
 
 Experiments 2 and 3 (144 and 198 real-world datasets characterized by 8 statistical meta-features) corroborated these trends on realistic data. The MLP failure was particularly pronounced: in Experiment 2, Spearman correlation fell to 0.034 (reflecting zero ranking capability) and Acc@1 dropped to 12.5\% (well below the 20\% random baseline for 5 candidate algorithms). Conversely, target standardization via StandardScaler or RobustScaler restored predictive capacity, reducing MAE to the range of 0.11 to 0.13 and raising Spearman correlation to values between 0.41 and 0.45. Table~\ref{tab:mlp_comparison} in Section~\ref{subsec:analise_mlp} summarizes MLP performance across all four experiments.
 
-Experiment 4 (the same 198 datasets characterized by 78 PyMFE meta-features) is the largest-scale experiment in this study. Using richer descriptors reduced prediction errors across all properly calibrated models. For instance, the minimum MAE achieved by SVR dropped from 0.123 (in Experiment 3) to 0.088 (in Experiment 4), while Random Forest MAE fell from 0.114 to 0.085. Table~\ref{tab:results_exp4_summary} synthesizes this benchmark, comparing baselines with top-performing target transformations.
+Experiment 4 (the same 198 datasets characterized by 78 PyMFE meta-features) is the largest-scale experiment in this study. Using richer descriptors reduced prediction errors across all properly calibrated models. For instance, the minimum MAE achieved by SVR dropped from 0.123 (in Experiment 3) to 0.088 (in Experiment 4), while Random Forest MAE fell from 0.114 to 0.085. Table~\ref{tab:results_exp4_summary} synthesizes this benchmark, comparing baselines with top-performing target scaling techniques.
 
 \begin{table}[ht]
 \centering
-\caption{Summary of Experiment 4 results (PyMFE, 198 datasets). Comparison between Baseline and top-performing meta-target transformation techniques.}
+\caption{Summary of Experiment 4 results (PyMFE, 198 datasets). Comparison between Baseline and top-performing meta-target scaling techniques.}
 \label{tab:results_exp4_summary}
 \footnotesize
 \begin{tabular}{llccc}
@@ -327,7 +333,7 @@ Table~\ref{tab:base_level_eval} summarizes results computed via 5-fold stratifie
 \resizebox{\columnwidth}{!}{%
 \begin{tabular}{llcccc}
 \toprule
-\textbf{Meta-Model} & \textbf{Target Preprocessing ($Y$)} & \textbf{Base F1 ($\mu$)} & \textbf{Std.\ Dev.} & \textbf{Regret ($\mu$)} & \textbf{Gain vs.\ SB} \\
+\textbf{Meta-Model} & \textbf{Target Scaling ($Y$)} & \textbf{Base F1 ($\mu$)} & \textbf{Std.\ Dev.} & \textbf{Regret ($\mu$)} & \textbf{Gain vs.\ SB} \\
 \midrule
 \textit{Reference} & \textit{Ideal Oracle} & \textit{0.7579} & \textit{0.1811} & \textit{0.0000} & \textit{+0.0256} \\
 \textit{Reference} & \textit{Single Best (RF)} & \textit{0.7323} & \textit{0.1904} & \textit{0.0256} & \textit{0.0000} \\
@@ -365,13 +371,13 @@ Table~\ref{tab:base_level_eval} summarizes results computed via 5-fold stratifie
 The base-level evaluation shows several practical patterns:
 
 \begin{enumerate}
-  \item \textbf{Target standardization renders SVR practically viable:} Without target preprocessing (Baseline), SVR achieves a base F1 of $0.7296$, trending below the trivial heuristic of deploying Random Forest uniformly across all tasks ($0.7323$; $p_{\text{nom}} = 0.078$, $r_{rb} = -0.212$). Under \textbf{robust standardization (RobustScaler)}, SVR rises to \textbf{$0.7395$} --- the highest average F1 in the study --- reducing \textit{Average Regret} to $0.0184$ (less than 2 percentage points from the Ideal Oracle). This within-model gain of $+0.0099$ is significant (49 wins against 19 losses, $p_{\text{adj}} = 6.4 \times 10^{-4}$, $r_{rb} = +0.527$), converting a losing trend against the static heuristic into a statistical tie ($p_{\text{adj}} = 0.260$).
-  \item \textbf{Practical severity of the MLP collapse:} Untransformed MLP delivers a base F1 of $0.6576$, incurring a regret exceeding $10\%$ against the Oracle ($\text{Regret} = 0.1003$) and losing decisively to the Single Best heuristic (101 losses against 30 wins, $p_{\text{adj}} = 1.0 \times 10^{-13}$, $r_{rb} = -0.772$), while remaining \textbf{statistically indistinguishable from Random Choice} ($p_{\text{adj}} = 0.260$). Zero-mean or zero-median target standardization recovers the model to $0.7062$ (StandardScaler, $+0.0486$, $p_{\text{adj}} = 3.3 \times 10^{-6}$, $r_{rb} = +0.515$) and $0.7028$ (RobustScaler, $+0.0452$, $p_{\text{adj}} = 2.6 \times 10^{-6}$), cutting regret nearly in half and restoring a solid advantage over chance ($p_{\text{adj}} = 1.3 \times 10^{-13}$). MinMaxScaler, in contrast, is inert (175 ties out of 198, $p_{\text{adj}} = 0.471$).
-  \item \textbf{Resilience of Random Forest:} The tree ensemble exhibits inherent robustness, maintaining performance around $0.736$--$0.738$ across all target transformations; switching from Baseline to MinMaxScaler leaves the recommendation unchanged on 185 of the 198 datasets ($p_{\text{adj}} = 0.471$). Its best configuration posts the only nominally significant gain over the Single Best heuristic ($+0.0058$, 36 wins against 15 losses, $p_{\text{nom}} = 0.020$, $r_{rb} = +0.374$), but this advantage does not survive multiplicity control within the exploratory family ($p_{\text{adj}} = 0.080$) and should therefore be read as a consistent trend rather than demonstrated superiority.
+  \item \textbf{Target standardization renders SVR practically viable:} Without target scaling (Baseline), SVR achieves a base F1 of $0.7296$, trending below the trivial heuristic of deploying Random Forest uniformly across all tasks ($0.7323$; $p_{\text{nom}} = 0.078$, $r_{rb} = -0.212$). Under \textbf{robust standardization (RobustScaler)}, SVR rises to \textbf{$0.7395$} --- the highest average F1 in the study --- reducing \textit{Average Regret} to $0.0184$ (less than 2 percentage points from the Ideal Oracle). This within-model gain of $+0.0099$ is significant (49 wins against 19 losses, $p_{\text{adj}} = 6.4 \times 10^{-4}$, $r_{rb} = +0.527$), converting a losing trend against the static heuristic into a statistical tie ($p_{\text{adj}} = 0.260$).
+  \item \textbf{Practical severity of the MLP collapse:} Unscaled MLP delivers a base F1 of $0.6576$, incurring a regret exceeding $10\%$ against the Oracle ($\text{Regret} = 0.1003$) and losing decisively to the Single Best heuristic (101 losses against 30 wins, $p_{\text{adj}} = 1.0 \times 10^{-13}$, $r_{rb} = -0.772$), while remaining \textbf{statistically indistinguishable from Random Choice} ($p_{\text{adj}} = 0.260$). Zero-mean or zero-median target standardization recovers the model to $0.7062$ (StandardScaler, $+0.0486$, $p_{\text{adj}} = 3.3 \times 10^{-6}$, $r_{rb} = +0.515$) and $0.7028$ (RobustScaler, $+0.0452$, $p_{\text{adj}} = 2.6 \times 10^{-6}$), cutting regret nearly in half and restoring a solid advantage over chance ($p_{\text{adj}} = 1.3 \times 10^{-13}$). MinMaxScaler, in contrast, is inert (175 ties out of 198, $p_{\text{adj}} = 0.471$).
+  \item \textbf{Resilience of Random Forest:} The tree ensemble exhibits inherent robustness, maintaining performance around $0.736$--$0.738$ across all target scaling techniques; switching from Baseline to MinMaxScaler leaves the recommendation unchanged on 185 of the 198 datasets ($p_{\text{adj}} = 0.471$). Its best configuration posts the only nominally significant gain over the Single Best heuristic ($+0.0058$, 36 wins against 15 losses, $p_{\text{nom}} = 0.020$, $r_{rb} = +0.374$), but this advantage does not survive multiplicity control within the exploratory family ($p_{\text{adj}} = 0.080$) and should therefore be read as a consistent trend rather than demonstrated superiority.
   \item \textbf{Degradation induced by QuantileTransformer:} Non-linear quantile distortions raised the regret of Ridge from $0.0365$ to $0.0419$ relative to the Oracle. At the base level, however, this degradation amounts only to a trend ($-0.0054$, 43 wins against 54 losses, $p_{\text{nom}} = 0.051$, $p_{\text{adj}} = 0.154$): the evidence that QuantileTransformer harms Ridge is statistically solid on the ranking metrics (Acc@1 and Spearman, Table~\ref{tab:results_exp4_summary}) rather than on base-level F1.
 \end{enumerate}
 
-Two aspects of Table~\ref{tab:wilcoxon_base} are worth noting. First, the high proportion of ties (126 to 185 out of 198 datasets) indicates that the compared strategies frequently recommend the same base algorithm, so the differences concentrate on the remaining third of the benchmark --- the contested subset isolated by the rank-biserial coefficients. Second, untransformed MLP wins on more datasets than it loses against Random Choice (116 versus 82, $r_{rb} = +0.124$) while still yielding a lower aggregate mean ($\Delta\text{F1} = -0.0092$). This asymmetry reflects large losses on specific tasks, where the network loses by large margins. Under the paired test, this difference is not statistically significant ($W = 8628.0$, $p_{\text{nom}} = 0.130$, $p_{\text{adj}} = 0.260$).
+Two aspects of Table~\ref{tab:wilcoxon_base} are worth noting. First, the high proportion of ties (126 to 185 out of 198 datasets) indicates that the compared strategies frequently recommend the same base algorithm, so the differences concentrate on the remaining third of the benchmark --- the contested subset isolated by the rank-biserial coefficients. Second, unscaled MLP wins on more datasets than it loses against Random Choice (116 versus 82, $r_{rb} = +0.124$) while still yielding a lower aggregate mean ($\Delta\text{F1} = -0.0092$). This asymmetry reflects large losses on specific tasks, where the network loses by large margins. Under the paired test, this difference is not statistically significant ($W = 8628.0$, $p_{\text{nom}} = 0.130$, $p_{\text{adj}} = 0.260$).
 
 \begin{table}[ht]
 \centering
@@ -406,7 +412,7 @@ SVR+RS vs.\ Single Best     & $+0.0072$ & 42/126/30  & 72  & 1057.0 & $0.1492$  
 
 \subsection{Hypothesis Testing}
 
-\textbf{Friedman Test.} This omnibus test evaluates whether statistically significant differences exist in Mean Absolute Error (MAE) when varying target transformations (results reported in Table~\ref{tab:friedman_all}). In Experiments 2 and 3, only MLP exhibited statistically significant differences, indicating that Ridge, SVR, and Random Forest tolerate raw target distributions under smaller feature sets. In Experiment 4 (with PyMFE), the expanded meta-feature space reduced residual variance, enabling the Friedman test to detect significant global variations for SVR and Ridge; for Ridge, this global significance is driven entirely by the non-linear degradation of QuantileTransformer ($p = 1.87 \times 10^{-5}$ vs.\ Baseline), as its linear counterparts remain analytically identical. Random Forest remained stable, with no significant variation under any preprocessing ($p = 0.333$).
+\textbf{Friedman Test.} This omnibus test evaluates whether statistically significant differences exist in Mean Absolute Error (MAE) when varying the target scaling technique (results reported in Table~\ref{tab:friedman_all}). In Experiments 2 and 3, only MLP exhibited statistically significant differences, indicating that Ridge, SVR, and Random Forest tolerate raw target distributions under smaller feature sets. In Experiment 4 (with PyMFE), the expanded meta-feature space reduced residual variance, enabling the Friedman test to detect significant global variations for SVR and Ridge; for Ridge, this global significance is driven entirely by the non-linear degradation of QuantileTransformer ($p = 1.87 \times 10^{-5}$ vs.\ Baseline), as its linear counterparts remain analytically identical. Random Forest remained stable, with no significant variation under any scaling technique ($p = 0.333$).
 
 \begin{table}[ht]
 \centering
@@ -438,19 +444,19 @@ SVR+RS vs.\ Single Best     & $+0.0072$ & 42/126/30  & 72  & 1057.0 & $0.1492$  
 \end{tabular}
 \end{table}
 
-\textbf{Post-hoc Wilcoxon Test for MLP.} Pairwise comparisons (Wilcoxon signed-rank test) confirmed that target standardization significantly outperforms untransformed targets across all three real-world benchmarks ($p < 10^{-4}$). StandardScaler and RobustScaler reduced MAE by up to 36\% and raised Spearman correlation from near zero to over 0.40. For instance, in Experiment 4, StandardScaler reduced MLP MAE from 0.183 to 0.117 and raised Spearman correlation from 0.080 to 0.388.
+\textbf{Post-hoc Wilcoxon Test for MLP.} Pairwise comparisons (Wilcoxon signed-rank test) confirmed that target standardization significantly outperforms unscaled targets across all three real-world benchmarks ($p < 10^{-4}$). StandardScaler and RobustScaler reduced MAE by up to 36\% and raised Spearman correlation from near zero to over 0.40. For instance, in Experiment 4, StandardScaler reduced MLP MAE from 0.183 to 0.117 and raised Spearman correlation from 0.080 to 0.388.
 
 \subsection{Meta-Model Analysis}
 
 \subsubsection{Ridge Regression: Invariance to Linear Transformations}
 
-Ridge regression produced \textit{identical} results under linear transformations (StandardScaler, MinMaxScaler, and RobustScaler) across all four experiments. This invariance follows from the algebraic properties of regularized linear models: under an affine target transformation $\tilde{y} = a \cdot y + b$, Ridge analytically rescales its regression coefficients, and post-prediction inversion exactly reconstructs the original output. The sole exception is QuantileTransformer: by applying a non-linear mapping, it distorts relative distances in the target space, so that post-prediction inversion no longer preserves rankings, causing the observed drop in recommendation accuracy (Acc@1).
+Ridge regression produced \textit{identical} results under linear transformations (StandardScaler, MinMaxScaler, and RobustScaler) across all four experiments. This invariance follows from the algebraic properties of regularized linear models: under an affine target transformation $y_s = a \cdot y + b$, Ridge analytically rescales its regression coefficients, and post-prediction inversion exactly reconstructs the original output. The sole exception is QuantileTransformer: by applying a non-linear mapping, it distorts relative distances in the target space, so that post-prediction inversion no longer preserves rankings, causing the observed drop in recommendation accuracy (Acc@1).
 
-\subsubsection{SVR: Target Transformation Benefits Recommendation More than Error Reduction}
+\subsubsection{SVR: Target Scaling Benefits Recommendation More than Error Reduction}
 
-For SVR, target transformation exerts a substantial impact on recommendation quality (Acc@1 and Spearman correlation) across all benchmarks, even when the reduction in absolute error (MAE) is modest. On real-world datasets characterized by basic meta-features (Experiments 2 and 3), absolute error remained largely unchanged, yet the ability to identify the top-performing classifier improved markedly: in Experiment 2, Acc@1 rose from 0.486 to 0.563 with RobustScaler, and in Experiment 3 from 0.429 to 0.470. Under the rich PyMFE meta-feature space of Experiment 4, SVR improved across all metrics: MAE dropped by approximately 10\% (from 0.098 to 0.088 with RobustScaler) while recommendation accuracy increased from 0.369 to 0.495 under StandardScaler.
+For SVR, target scaling exerts a substantial impact on recommendation quality (Acc@1 and Spearman correlation) across all benchmarks, even when the reduction in absolute error (MAE) is modest. On real-world datasets characterized by basic meta-features (Experiments 2 and 3), absolute error remained largely unchanged, yet the ability to identify the top-performing classifier improved markedly: in Experiment 2, Acc@1 rose from 0.486 to 0.563 with RobustScaler, and in Experiment 3 from 0.429 to 0.470. Under the rich PyMFE meta-feature space of Experiment 4, SVR improved across all metrics: MAE dropped by approximately 10\% (from 0.098 to 0.088 with RobustScaler) while recommendation accuracy increased from 0.369 to 0.495 under StandardScaler.
 
-\subsubsection{Random Forest: Robustness to Meta-Target Transformations}
+\subsubsection{Random Forest: Robustness to Meta-Target Scaling}
 
 Random Forest proved to be the most stable meta-model against variations in meta-target distribution. Across all experiments, MAE differences among linear scaling techniques were negligible ($< 0.007$), with statistical tests confirming no global significance. This follows from the split criterion: regression trees select splits by minimizing the residual variance of the target, and variance is invariant --- up to a constant factor that does not alter the arg\,min --- under any affine transformation $y \mapsto a \cdot y + b$. StandardScaler, MinMaxScaler and RobustScaler are therefore unable to alter the induced tree structure. Variance is not preserved, however, under non-linear mappings, even monotonic ones: QuantileTransformer reshapes the target density and consequently the relative distances between performance scores, explaining why it is the only technique that degrades Random Forest recommendation accuracy (Acc@1). At the base level, replacing the Baseline with MinMaxScaler leaves the recommended algorithm unchanged on 185 of the 198 datasets (93.4\%), leaving only $n_{\text{eff}} = 13$ contested decisions --- a sample on which the paired test has virtually no power, so the invariance claim rests on the tie count rather than on the resulting $p$-value ($p_{\text{adj}} = 0.471$).
 
@@ -466,7 +472,7 @@ MLP exhibited the strongest sensitivity to target scaling. Without meta-target s
 \footnotesize
 \begin{tabular}{lcccc}
 \toprule
-\textbf{Experiment} & \textbf{Transformation} & \textbf{MAE} & \textbf{Spearman} & \textbf{Acc@1} \\
+\textbf{Experiment} & \textbf{Scaling} & \textbf{MAE} & \textbf{Spearman} & \textbf{Acc@1} \\
 \midrule
 \multirow{2}{*}{Exp.\ 1 (synthetic, 50 ds)} & Baseline     & 0.147 & 0.274 & 0.320 \\
                                              & RobustScaler & \textbf{0.071} & \textbf{0.588} & \textbf{0.440} \\
@@ -486,7 +492,7 @@ MLP exhibited the strongest sensitivity to target scaling. Without meta-target s
 \end{tabular}
 \end{table}
 
-This breakdown occurs on real-world benchmarks because base algorithm macro-F1 scores share a consistently high positive mean ($\approx 0.65$ to $0.75$), coupled with high variance across datasets. When the meta-target lacks zero-centered standardization ($\mu=0$ or zero median), standard neural network weight initialization (which presumes zero-centered outputs) causes the MSE loss to be dominated by fitting this constant bias offset, reducing gradient sensitivity to the relative differences among the 5 base algorithms. Zero-centering methods like StandardScaler and RobustScaler eliminate this offset, allowing backpropagation to calibrate weights based on relative performance differentials.
+This breakdown occurs on real-world benchmarks because base algorithm macro-F1 scores share a consistently high positive mean ($\approx 0.65$ to $0.75$), coupled with high variance across datasets. When the meta-target lacks zero-centered standardization ($\mu=0$ or zero median), standard neural network weight initialization (which presumes zero-centered outputs)~\cite{glorot2010understanding,lecun2012efficient} causes the MSE loss to be dominated by fitting this constant bias offset, reducing gradient sensitivity to the relative differences among the 5 base algorithms. Zero-centering methods like StandardScaler and RobustScaler eliminate this offset, allowing backpropagation to calibrate weights based on relative performance differentials.
 
 MinMaxScaler fails to resolve this instability because it performs a linear contraction to $[0, 1]$, preserving the non-zero positive offset and skewness of the original distribution (explaining why its results remain statistically indistinguishable from the Baseline). Conversely, in Experiment 4 (with 78 PyMFE descriptors), a distinct behavior emerges: QuantileTransformer delivered the highest Spearman correlation for MLP (0.436). This shows that in dense, structured meta-feature spaces, mapping the target to a Gaussian distribution helps the neural network capture hierarchical relationships among base classifiers.
 
@@ -525,29 +531,29 @@ SVR benefits from standardization       & MAE        & Spearman   & Spearman   &
 \section{Conclusion}
 % ============================================================
 
-This study investigated how meta-target preprocessing and scaling techniques influence the performance of meta-learning systems for algorithm selection. Four progressive experimental setups were evaluated: 50 controlled benchmark datasets, 144 and 198 real-world OpenML datasets characterized by 8 statistical meta-features, and the same 198 datasets expanded to 78 descriptors via the PyMFE framework.
+This study investigated how meta-target scaling techniques influence the performance of meta-learning systems for algorithm selection. Four progressive experimental setups were evaluated: 50 controlled benchmark datasets, 144 and 198 real-world OpenML datasets characterized by 8 statistical meta-features, and the same 198 datasets expanded to 78 descriptors via the PyMFE framework.
 
 Our findings show that \textbf{meta-target scaling sensitivity depends on meta-model architecture} and affects the practical utility of recommendations at the base level:
 
 \begin{itemize}
   \item \textbf{Ridge}: Remains invariant to linear target scaling due to its mathematical formulation, but suffers ranking degradation and elevated base-level regret under non-linear transformations.
-  \item \textbf{SVR}: Substantially improves recommendation quality (Acc@1 and Spearman correlation) under standardization (StandardScaler or RobustScaler). In base-level evaluation, SVR coupled with RobustScaler achieves the highest average performance ($F1 = 0.7395$) and the lowest regret ($0.0184$) in the entire study. Target standardization is what makes this possible: the within-model gain over untransformed SVR is highly significant ($p_{\text{adj}} < 10^{-3}$, $r_{rb} = +0.527$), lifting the model from a losing trend against the best static heuristic to a statistical tie with it.
+  \item \textbf{SVR}: Substantially improves recommendation quality (Acc@1 and Spearman correlation) under standardization (StandardScaler or RobustScaler). In base-level evaluation, SVR coupled with RobustScaler achieves the highest average performance ($F1 = 0.7395$) and the lowest regret ($0.0184$) in the entire study. Target standardization is what makes this possible: the within-model gain over unscaled SVR is highly significant ($p_{\text{adj}} < 10^{-3}$, $r_{rb} = +0.527$), lifting the model from a losing trend against the best static heuristic to a statistical tie with it.
   \item \textbf{Random Forest}: The most stable meta-model overall, maintaining high base-level performance ($F1 \approx 0.738$) invariant to target scaling; its performance remains statistically identical across all linear scalers.
   \item \textbf{MLP}: Zero-mean or zero-median target standardization (StandardScaler or RobustScaler) is required. Without it, the network exhibits severe base-level degradation, yielding $F1 = 0.658$ --- statistically indistinguishable from random choice and worse than the Single Best heuristic ($p_{\text{adj}} = 1.0 \times 10^{-13}$).
 \end{itemize}
 
 \textbf{QuantileTransformer should generally be avoided when the primary goal is algorithm recommendation}, as its non-linear mapping distorts ranking hierarchies for most traditional meta-models; its harm is statistically established on ranking metrics, though dense meta-feature spaces allow neural architectures (MLP) to recover ranking correlations.
 
-As a complementary methodological contribution, the transition from the initial 8 meta-features to the 78 PyMFE descriptors not only reduced absolute prediction error across all properly calibrated meta-models, but also lowered residual noise enough to render the effect of meta-target preprocessing detectable by the Friedman test for Ridge and SVR --- sensitivities that remained masked under the reduced feature set.
+As a complementary methodological contribution, the transition from the initial 8 meta-features to the 78 PyMFE descriptors not only reduced absolute prediction error across all properly calibrated meta-models, but also lowered residual noise enough to render the effect of meta-target scaling detectable by the Friedman test for Ridge and SVR --- sensitivities that remained masked under the reduced feature set.
 
 These results allow us to address each hypothesis:
 \begin{itemize}
-  \item \textbf{H1 is confirmed} for the architectures it targets: meta-models relying on gradient descent (MLP) or on margins and distances in the target space (SVR) exhibited statistically significant sensitivity to meta-target preprocessing ($p = 5.9 \times 10^{-59}$ and $p = 5.5 \times 10^{-11}$ in Experiment 4). Ridge, having a closed-form solution, is invariant to affine target transformations; its significance in Experiment 4 stems from the non-linearity of QuantileTransformer.
+  \item \textbf{H1 is confirmed} for the architectures it targets: meta-models relying on gradient descent (MLP) or on margins and distances in the target space (SVR) exhibited statistically significant sensitivity to meta-target scaling ($p = 5.9 \times 10^{-59}$ and $p = 5.5 \times 10^{-11}$ in Experiment 4). Ridge, having a closed-form solution, is invariant to affine target transformations; its significance in Experiment 4 stems from the non-linearity of QuantileTransformer.
   \item \textbf{H2 is confirmed}: the tree ensemble remained insensitive to every linear target transformation, recommending the identical algorithm on 93.4\% of the datasets, and degraded only under the non-linear mapping of QuantileTransformer.
   \item \textbf{H3 is confirmed}: no single technique dominates universally, and the optimal choice depends on meta-model architecture.
 \end{itemize}
 
-Accordingly, when the meta-model family is already fixed, the designer should adopt the technique empirically demonstrated for that architecture: RobustScaler for SVR, any linear transformation (or raw target) for Ridge and Random Forest, and StandardScaler or RobustScaler for MLP. As a fallback guideline for settings in which several architectures will be explored without budget for a preprocessing search, \textbf{RobustScaler} stands out as the most conservative option --- not because it maximizes expected F1 across all models, but because it minimizes risk: it prevents the catastrophic collapse of the neural network (unlike MinMaxScaler and the Baseline), renders SVR competitive, and preserves the invariance of Random Forest and Ridge.
+Accordingly, when the meta-model family is already fixed, the designer should adopt the technique empirically demonstrated for that architecture: RobustScaler for SVR, any linear scaler (or raw target) for Ridge and Random Forest, and StandardScaler or RobustScaler for MLP. As a fallback guideline for settings in which several architectures will be explored without budget for a scaling search, \textbf{RobustScaler} stands out as the most conservative option --- not because it maximizes expected F1 across all models, but because it minimizes risk: it prevents the catastrophic collapse of the neural network (unlike MinMaxScaler and the Baseline), renders SVR competitive, and preserves the invariance of Random Forest and Ridge.
 
 \subsection{Limitations and Future Work}
 
