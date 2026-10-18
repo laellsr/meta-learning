@@ -496,7 +496,7 @@ Consequently, whenever the primary goal is \textbf{optimal algorithm recommendat
 
 \subsection{Consistency Across Experiments}
 
-Table~\ref{tab:consistency} summarizes the consistency of the empirical findings across all four experimental scenarios, showing that the patterns hold across both synthetic and real-world settings.
+Table~\ref{tab:consistency} summarizes the consistency of the findings across all four experimental scenarios, showing that the patterns hold across both synthetic and real-world settings.
 
 \begin{table}[ht]
 \centering
@@ -525,7 +525,7 @@ SVR benefits from standardization       & MAE        & Spearman   & Spearman   &
 
 This study investigated how meta-target scaling techniques influence the performance of meta-learning systems for algorithm selection. Four progressive experimental setups were evaluated: 50 controlled benchmark datasets, 144 and 198 real-world OpenML datasets characterized by 8 statistical meta-features, and the same 198 datasets expanded to 78 descriptors via the PyMFE framework.
 
-The empirical findings show that \textbf{meta-target scaling sensitivity depends on meta-model architecture} and affects the practical utility of recommendations at the base level:
+The findings show that \textbf{meta-target scaling sensitivity depends on meta-model architecture} and affects the practical utility of recommendations at the base level:
 
 \begin{itemize}
   \item \textbf{Ridge}: Remains invariant to linear target scaling due to its mathematical formulation, but suffers ranking degradation and elevated base-level regret under non-linear transformations.
@@ -546,10 +546,6 @@ These results allow addressing each hypothesis:
 \end{itemize}
 
 Accordingly, when the meta-model family is already fixed, the designer should adopt the technique empirically demonstrated for that architecture: RobustScaler for SVR, any linear scaler (or raw target) for Ridge and Random Forest, and StandardScaler or RobustScaler for MLP. As a fallback guideline for settings in which several architectures will be explored without budget for a scaling search, \textbf{RobustScaler} stands out as the most conservative option --- not because it maximizes expected F1 across all models, but because it minimizes risk: it prevents the catastrophic collapse of the neural network (unlike MinMaxScaler and the Baseline), renders SVR competitive, and preserves the invariance of Random Forest and Ridge.
-
-\subsection{Limitations and Future Work}
-
-The scope of these conclusions is bounded by four design decisions. First, the five base classifiers were run with \texttt{scikit-learn} default hyperparameters, without AutoML or hyperparameter optimization; the meta-target therefore characterizes a portfolio of untuned algorithms. Second, the meta-target is restricted to macro-F1, leaving aside probability calibration metrics (Brier score, log-loss) and runtime cost; bounded or asymmetric metrics may alter the observed scaling interactions, warranting dedicated investigation. Third, datasets were capped at $2{,}000$ instances to keep 5-fold cross-validation over 198 problems computationally feasible, which limits extrapolation to large-scale tasks. Fourth, the MLP was evaluated with a fixed $[16, 8]$ architecture, so the observed collapse may be amplified by \texttt{scikit-learn} defaults --- Glorot/He initialization presuming zero-centered outputs, Adam with a fixed learning rate and no warm-up, and the absence of batch normalization. Future work should assess whether modern deep learning practices (layer normalization, output-bias initialization, or ranking-oriented losses such as ListNet) mitigate this intrinsic sensitivity, and whether these findings hold for other meta-targets and larger dataset regimes.
 
 \bibliographystyle{sbc}
 \bibliography{relatorio-sbc}
