@@ -45,7 +45,7 @@
 \maketitle
 
 \begin{abstract}
-Meta-learning systems for algorithm selection train a meta-model to predict the performance of base algorithms (the meta-target) from dataset characteristics (meta-features). While meta-features are routinely scaled, the effect of scaling the meta-target remains largely unexplored. We evaluate four regression meta-models (Ridge, SVR, Random Forest, and MLP) combined with five meta-target scaling strategies across four experimental scenarios, ranging from 50 controlled datasets to 198 real-world OpenML datasets described by either 8 statistical or 78 PyMFE meta-features, and assess both meta-level predictive performance and base-level recommendation quality. Scaling sensitivity depends on meta-model architecture. Without zero-centered standardization, MLP recommendations become statistically indistinguishable from random choice; StandardScaler and RobustScaler reduce its mean absolute error by 51.8\% on controlled data and by up to 36.3\% on real-world data. RobustScaler reduces SVR error by 9.6\% and yields the highest base-level macro-F1 of the study, statistically tying the best static heuristic. Ridge and Random Forest are invariant to linear scalers, whereas the non-linear QuantileTransformer degrades ranking ability for most meta-models. While no single technique universally dominates, RobustScaler emerges as the safest general-purpose default.
+Meta-learning systems for algorithm selection train a meta-model to predict the performance of base algorithms (the meta-target) from dataset characteristics (meta-features). While meta-features are routinely scaled, the effect of scaling the meta-target remains largely unexplored. This study evaluates four regression meta-models (Ridge, SVR, Random Forest, and MLP) combined with five meta-target scaling strategies across four experimental scenarios, ranging from 50 controlled datasets to 198 real-world OpenML datasets described by either 8 statistical or 78 PyMFE meta-features, and assesses both meta-level predictive performance and base-level recommendation quality. Scaling sensitivity depends on meta-model architecture. Without zero-centered standardization, MLP recommendations become statistically indistinguishable from random choice; StandardScaler and RobustScaler reduce its mean absolute error by 51.8\% on controlled data and by up to 36.3\% on real-world data. RobustScaler reduces SVR error by 9.6\% and yields the highest base-level macro-F1 of the study, statistically tying the best static heuristic. Ridge and Random Forest are invariant to linear scalers, whereas the non-linear QuantileTransformer degrades ranking ability for most meta-models. While no single technique universally dominates, RobustScaler emerges as the safest general-purpose default.
 \end{abstract}
 
 % ============================================================
@@ -54,7 +54,7 @@ Meta-learning systems for algorithm selection train a meta-model to predict the 
 
 Machine learning (ML) algorithm selection is one of the most resource-intensive stages in building intelligent systems. Rather than exhaustively evaluating every candidate algorithm on a new dataset---a computationally prohibitive approach---\textit{meta-learning} uses historical evaluations to train a meta-model that maps dataset characteristics (\textit{meta-features}) to base algorithm performances (\textit{meta-target}), enabling the recommendation of the most suitable algorithm for unseen tasks~\cite{vanschoren2018meta}.
 
-While input \textit{meta-features} typically undergo rigorous preprocessing and scaling, the performance scores forming the \textit{meta-target} are typically used in their raw form. Nonetheless, metrics such as macro-F1 vary in scale and distribution across tasks, which can hinder meta-models sensitive to these discrepancies. The study by \cite{amorim2022choice} demonstrated at the base level that \textit{``the choice of scaling technique matters for classification performance''}---we investigate whether this effect holds for regression at the meta-level when the targets are scaled.
+While input \textit{meta-features} typically undergo rigorous preprocessing and scaling, the performance scores forming the \textit{meta-target} are typically used in their raw form. Nonetheless, metrics such as macro-F1 vary in scale and distribution across tasks, which can hinder meta-models sensitive to these discrepancies. The study by \cite{amorim2022choice} demonstrated at the base level that \textit{``the choice of scaling technique matters for classification performance''}---this work investigates whether this effect holds for regression at the meta-level when the targets are scaled.
 
 \textbf{Problem Formulation:} Does the scaling of the meta-target in meta-learning systems for algorithm selection yield meaningful performance differences? Is there a universal scaling recommendation suitable for any meta-model architecture?
 
@@ -74,7 +74,7 @@ While input \textit{meta-features} typically undergo rigorous preprocessing and 
 
 \subsection{Problem Formulation}
 
-Let $\mathcal{D} = \{d_1, \dots, d_N\}$ denote a benchmark repository of $N$ classification datasets. For each dataset $d_i$, we extract a $D$-dimensional meta-feature vector $\mathbf{x}_i \in \mathbb{R}^D$, forming the meta-feature matrix $X \in \mathbb{R}^{N \times D}$. We evaluate a portfolio of $M$ base classification algorithms $\mathcal{A} = \{a_1, \dots, a_M\}$ on each dataset, yielding a performance vector $\mathbf{y}_i \in \mathbb{R}^M$ (e.g., the macro-F1 score of each algorithm $a_j$ on $d_i$) and the resulting meta-target matrix $Y \in \mathbb{R}^{N \times M}$. The objective is to induce a mapping $f$ that predicts $\hat{\mathbf{y}}_i \approx \mathbf{y}_i$ given $\mathbf{x}_i$, subsequently recommending the base algorithm with the highest estimated performance for an unseen dataset.
+Let $\mathcal{D} = \{d_1, \dots, d_N\}$ denote a benchmark repository of $N$ classification datasets. For each dataset $d_i$, a $D$-dimensional meta-feature vector $\mathbf{x}_i \in \mathbb{R}^D$ is extracted, forming the meta-feature matrix $X \in \mathbb{R}^{N \times D}$. A portfolio of $M$ base classification algorithms $\mathcal{A} = \{a_1, \dots, a_M\}$ is evaluated on each dataset, yielding a performance vector $\mathbf{y}_i \in \mathbb{R}^M$ (e.g., the macro-F1 score of each algorithm $a_j$ on $d_i$) and the resulting meta-target matrix $Y \in \mathbb{R}^{N \times M}$. The objective is to induce a mapping $f$ that predicts $\hat{\mathbf{y}}_i \approx \mathbf{y}_i$ given $\mathbf{x}_i$, subsequently recommending the base algorithm with the highest estimated performance for an unseen dataset.
 
 \subsection{Meta-Learning Pipeline with Meta-Target Scaling}
 
@@ -144,7 +144,7 @@ Five target scaling strategies applied column-wise to the meta-target matrix $Y$
   \item \textbf{QuantileTransformer} (\textbf{Quantile Transformation}): $y_s = \Phi^{-1}\!\left( \frac{\text{rank}(y)}{n+1} \right)$. Maps data non-linearly to a standard normal distribution via the empirical quantile function, mitigating extreme skewness but distorting relative inter-rank distances.
 \end{enumerate}
 
-A key distinction separates these families: StandardScaler and RobustScaler perform \textbf{standardization} (centering with zero mean or median followed by dispersion scaling), a property crucial for stabilizing gradient backpropagation and preventing neuron saturation in neural networks~\cite{lecun2012efficient,glorot2010understanding}. In contrast, MinMaxScaler is a \textbf{range normalization} that compresses scores into $[0, 1]$ without removing the non-zero bias offset (the mean remains around $0.65$ in our benchmark). Techniques 1--4 are strictly \textbf{monotonic} (preserving relative order), whereas quantile transformation is \textbf{non-linear} and may alter the ranking hierarchy among algorithms.
+A key distinction separates these families: StandardScaler and RobustScaler perform \textbf{standardization} (centering with zero mean or median followed by dispersion scaling), a property crucial for stabilizing gradient backpropagation and preventing neuron saturation in neural networks~\cite{lecun2012efficient,glorot2010understanding}. In contrast, MinMaxScaler is a \textbf{range normalization} that compresses scores into $[0, 1]$ without removing the non-zero bias offset (the mean remains around $0.65$ in the experimental benchmark). Techniques 1--4 are strictly \textbf{monotonic} (preserving relative order), whereas quantile transformation is \textbf{non-linear} and may alter the ranking hierarchy among algorithms.
 
 \subsection{Evaluation Metrics}
 
@@ -158,7 +158,7 @@ Pipeline evaluation is conducted across two complementary dimensions: the \textb
 \end{itemize}
 
 \subsubsection{Base-Level Metrics}
-To measure the concrete utility perceived by a practitioner, let $\mathbf{y}_i \in \mathbb{R}^M$ denote the true macro-F1 vector across the $M$ base algorithms on test dataset $i$, and let $j^*(i) = \arg\max_{j \in \{1, \dots, M\}} \hat{y}_{i, j}$ be the index of the base algorithm recommended at the top of the ranking by the meta-model. We evaluate:
+To measure the concrete utility perceived by a practitioner, let $\mathbf{y}_i \in \mathbb{R}^M$ denote the true macro-F1 vector across the $M$ base algorithms on test dataset $i$, and let $j^*(i) = \arg\max_{j \in \{1, \dots, M\}} \hat{y}_{i, j}$ be the index of the base algorithm recommended at the top of the ranking by the meta-model. The base-level evaluation considers:
 \begin{itemize}
   \item \textbf{Average Base-Level F1 ($\overline{P}_{\text{base}}$):} The expected performance achieved by following the meta-model's recommendation:
   \begin{equation}
@@ -172,7 +172,7 @@ To measure the concrete utility perceived by a practitioner, let $\mathbf{y}_i \
   \begin{equation}
     \overline{\text{Regret}} = \overline{P}_{\text{oracle}} - \overline{P}_{\text{base}} = \frac{1}{N} \sum_{i=1}^N \left( \max_{j} y_{i, j} - y_{i, j^*(i)} \right)
   \end{equation}
-  \item \textbf{Gain over Static Baselines:} We benchmark $\overline{P}_{\text{base}}$ against two static reference strategies requiring no meta-learning: \textit{Single Best} (consistently choosing the classifier with the highest historical training mean, Random Forest) and \textit{Random Choice}.
+  \item \textbf{Gain over Static Baselines:} $\overline{P}_{\text{base}}$ is benchmarked against two static reference strategies requiring no meta-learning: \textit{Single Best} (consistently choosing the classifier with the highest historical training mean, Random Forest) and \textit{Random Choice}.
 \end{itemize}
 
 % ============================================================
@@ -212,7 +212,7 @@ Mean Pearson         & 0.00  & 0.08   & 0.17    & 0.34     & 0.78  \\
 
 \subsection{Extracted Meta-Features}
 
-Following standard meta-learning practice~\cite{pymfe2020}, we extract tabular meta-features from each dataset. In Experiments 1--3, the representation comprises 8 general and statistical meta-features (from the \texttt{general} and \texttt{statistical} groups), namely: number of instances, number of features, $D/N$ ratio, Imbalance Ratio, Shannon class entropy, mean absolute Pearson correlation between features, mean feature variance, and mean mutual information between features and target classes.
+Following standard meta-learning practice~\cite{pymfe2020}, tabular meta-features are extracted from each dataset. In Experiments 1--3, the representation comprises 8 general and statistical meta-features (from the \texttt{general} and \texttt{statistical} groups), namely: number of instances, number of features, $D/N$ ratio, Imbalance Ratio, Shannon class entropy, mean absolute Pearson correlation between features, mean feature variance, and mean mutual information between features and target classes.
 
 In Experiment~4, this representation space is extended to 78 descriptors via the \texttt{PyMFE} framework, which systematically extracts four feature families ---\texttt{general} (dimensionality, class proportions), \texttt{statistical} (canonical correlation, skewness, variance), \texttt{info-theory} (entropy, mutual information, concentration), and \texttt{clustering} (Calinski-Harabasz, Davies-Bouldin, Dunn)--- subsuming the previous 8 metrics while capturing task complexity.
 
@@ -234,11 +234,11 @@ Four distinct meta-models were evaluated as multi-output regressors (predicting 
 
 \subsection{Validation Protocol}
 
-We adopted a \textbf{5-fold cross-validation scheme at the meta-level} (partitioning by datasets). Within each split, the target scaler was fitted exclusively on the training datasets, the meta-model was trained on the scaled targets, and test predictions were inverted back to the original scale before computing evaluation metrics, avoiding data leakage.
+A \textbf{5-fold cross-validation scheme at the meta-level} was adopted (partitioning by datasets). Within each split, the target scaler was fitted exclusively on the training datasets, the meta-model was trained on the scaled targets, and test predictions were inverted back to the original scale before computing evaluation metrics, avoiding data leakage.
 
 \subsection{Statistical Tests}
 
-To assess the statistical significance of performance differences across target scaling techniques, we employed:
+To assess the statistical significance of performance differences across target scaling techniques, the following statistical tests were employed:
 \begin{itemize}
   \item \textbf{Friedman Test} (omnibus): Evaluates whether at least one scaling technique significantly differs from the others per meta-model, based on per-dataset MAE vectors ($\alpha = 0.05$);
   \item \textbf{Wilcoxon Signed-Rank Test} (post-hoc): Pairwise comparison of each scaling technique against the unscaled Baseline.
@@ -496,7 +496,7 @@ Consequently, whenever the primary goal is \textbf{optimal algorithm recommendat
 
 \subsection{Consistency Across Experiments}
 
-Table~\ref{tab:consistency} summarizes the consistency of our findings across all four experimental scenarios, showing that the patterns hold across both synthetic and real-world settings.
+Table~\ref{tab:consistency} summarizes the consistency of the empirical findings across all four experimental scenarios, showing that the patterns hold across both synthetic and real-world settings.
 
 \begin{table}[ht]
 \centering
@@ -525,7 +525,7 @@ SVR benefits from standardization       & MAE        & Spearman   & Spearman   &
 
 This study investigated how meta-target scaling techniques influence the performance of meta-learning systems for algorithm selection. Four progressive experimental setups were evaluated: 50 controlled benchmark datasets, 144 and 198 real-world OpenML datasets characterized by 8 statistical meta-features, and the same 198 datasets expanded to 78 descriptors via the PyMFE framework.
 
-Our findings show that \textbf{meta-target scaling sensitivity depends on meta-model architecture} and affects the practical utility of recommendations at the base level:
+The empirical findings show that \textbf{meta-target scaling sensitivity depends on meta-model architecture} and affects the practical utility of recommendations at the base level:
 
 \begin{itemize}
   \item \textbf{Ridge}: Remains invariant to linear target scaling due to its mathematical formulation, but suffers ranking degradation and elevated base-level regret under non-linear transformations.
@@ -538,7 +538,7 @@ Our findings show that \textbf{meta-target scaling sensitivity depends on meta-m
 
 As a complementary methodological contribution, the transition from the initial 8 meta-features to the 78 PyMFE descriptors not only reduced absolute prediction error across all properly calibrated meta-models, but also lowered residual noise enough to render the effect of meta-target scaling detectable by the Friedman test for Ridge and SVR --- sensitivities that remained masked under the reduced feature set.
 
-These results allow us to address each hypothesis:
+These results allow addressing each hypothesis:
 \begin{itemize}
   \item \textbf{H1 is confirmed} for the architectures it targets: meta-models relying on gradient descent (MLP) or on margins and distances in the target space (SVR) exhibited statistically significant sensitivity to meta-target scaling ($p = 5.9 \times 10^{-59}$ and $p = 5.5 \times 10^{-11}$ in Experiment 4). Ridge, having a closed-form solution, is invariant to affine target transformations; its significance in Experiment 4 stems from the non-linearity of QuantileTransformer.
   \item \textbf{H2 is confirmed}: the tree ensemble remained insensitive to every linear target transformation, recommending the identical algorithm on 93.4\% of the datasets, and degraded only under the non-linear mapping of QuantileTransformer.
