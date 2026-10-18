@@ -68,14 +68,6 @@ While input \textit{meta-features} typically undergo rigorous preprocessing and 
   \item A mechanistic analysis and actionable design guidelines explaining how meta-model architectural properties interact with linear and non-linear target scaling.
 \end{itemize}
 
-\textbf{Main Findings:}
-\begin{itemize}
-  \item MLP collapses without zero-centered meta-target standardization: on real-world data its recommendations become statistically indistinguishable from random choice, even though the input meta-features $X$ are standardized---a failure resolved by StandardScaler or RobustScaler;
-  \item At the base level, RobustScaler lifts SVR from a losing trend against the Single Best heuristic to a statistical tie, yielding the highest average macro-F1 ($0.7395$) and the lowest regret ($0.0184$) of the study;
-  \item Ridge and Random Forest are invariant to linear target scalers, whereas the non-linear QuantileTransformer degrades ranking ability for most meta-models, with MLP under the richer PyMFE meta-feature space as the only exception;
-  \item Richer meta-feature sets reduce prediction error across all meta-models when combined with appropriate target scaling.
-\end{itemize}
-
 % ============================================================
 \section{Proposed Approach}
 % ============================================================
